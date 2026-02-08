@@ -8,13 +8,15 @@ const userSchema = new mongoose.Schema({
         required: [true, "Name is required"],
         trim: true,
         minlength: [2, "Name must be at least 2 characters"],
-        maxlength: [50, "Name cannot exceed 50 characters"]
+        maxlength: [50, "Name cannot exceed 50 characters"],
+        index : true
     },
     username: {
         type: String,
         trim: true,
         unique: true,
-        sparse: true  // ← ADDED
+        sparse: true , // ← ADDED,
+        index : true
     },
     email: {
         type: String,
@@ -56,7 +58,8 @@ const userSchema = new mongoose.Schema({
     },
     skills: [{
         type: Schema.Types.ObjectId,
-        ref: "Skill"
+        ref: "Skill",
+        index : true
     }],
     experienceLevel: {
         type: String,
@@ -77,7 +80,8 @@ const userSchema = new mongoose.Schema({
     rating: {
         type: Number,
         default: 1500,
-        min: [0, "Rating cannot be negative"]
+        min: [0, "Rating cannot be negative"],
+        index : true
     },
     battlesPlayed: {
         type: Number,
@@ -160,11 +164,6 @@ const userSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
-// ========== INDEXES ==========
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-userSchema.index({ rating: -1 });
-userSchema.index({ skills: 1 });
 
 // ========== VIRTUALS ==========
 userSchema.virtual('winRate').get(function() {
