@@ -148,4 +148,19 @@ updatedAt (Date, timestamps: true)
 
 # Day 2 building auth_controller.js
 
-# signup
+# 📋 AUTH CONTROLLER MEIN KITNE FUNCTIONS BANANE HAIN?
+# Total 6 Main Functions:
+
+`register` - **Naya user banao**
+`login` - **User ko authenticate karo**
+`logout` - **User ko log out karo**
+`refreshAccessToken` - **Naya access token do**
+`getCurrentUser` - **Logged-in user ka data do**
+`updatePassword` - **Password change karo (logged-in user)**
+
+
+# 1. SignUp
+
+**Logic building**
+1. req.body se data nikalo
+2. 
