@@ -140,8 +140,7 @@ const userSchema = new mongoose.Schema({
         type: Date
     },
     refreshToken: {
-        type: String,
-        select: false  // ← ADDED (security)
+        type: String, 
     },
     loginAttempts: {
         type: Number,

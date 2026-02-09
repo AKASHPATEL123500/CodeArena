@@ -4,6 +4,9 @@ import { ApiRespone } from "../utils/apiResponse.js";
 import User from "../models/user_model.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+
 
 export const signup = asyncHandler(async(req,res)=>{
 
@@ -172,6 +175,7 @@ export const signin = asyncHandler(async(req, res) => {
     // 13. Send response
     return res
         .status(200)
+        .cookie("accessToken",accessToken, cookieOptions)
         .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
             new ApiRespone(
@@ -187,40 +191,132 @@ export const signin = asyncHandler(async(req, res) => {
 
 
 export const signout = asyncHandler(async(req,res)=>{
-    const { oldPassword , newPassword } = req.body
+    
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $unset:{
+                refreshToken : 1
+            }
+        }
+    )
 
-    const trimOldPassword = oldPassword.trim()
-    const trimNewPassword = newPassword.trim()
+    const cookieOptions = {
+        httpOnly: true,
+        secure : true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",cookieOptions)
+    .clearCookie("refreshToken",cookieOptions)
+    .json(
+        new ApiRespone(
+            200,
+            {},
+            "SignOut Successfully"
+        )
+    )
+
+})
 
 
+export const refreshTokenRotation = asyncHandler(async(req, res) => {
+    
+    console.log("🔄 Refresh Token Rotation Started")
+    
+    // 1. Get token
+    const inCommingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+    console.log("📥 Incoming token:", inCommingRefreshToken ? "Present" : "Missing")
+    console.log("🍪 Cookies:", req.cookies)
+    console.log("📦 Body:", req.body)
+
+    if(!inCommingRefreshToken){
+        throw new ApiError(401, "Refresh token is required")
+    }
+
+    // 2. Verify token
+    console.log("🔐 Verifying token...")
+    
+    let decodeToken
+    try {
+        decodeToken = jwt.verify(
+            inCommingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET_KEY
+        )
+        console.log("✅ Token verified successfully")
+        console.log("👤 User ID from token:", decodeToken._id)
+    } catch (error) {
+        console.log("❌ Token verification failed:", error.message)
+        throw new ApiError(401, "Invalid or expired refresh token")
+    }
+
+    // 3. Find user
+    console.log("🔍 Finding user in database...")
+    const user = await User.findById(decodeToken?._id)
+
+    if(!user){
+        console.log("❌ User not found")
+        throw new ApiError(401, "User not found")
+    }
+    console.log("✅ User found:", user.email)
+
+    // 4. Compare tokens
+    console.log("🔑 Comparing tokens...")
+    console.log("Incoming token:", inCommingRefreshToken)
+    console.log("DB token:", user.refreshToken)
+    console.log("Match?", inCommingRefreshToken === user.refreshToken)
+
+    if(inCommingRefreshToken !== user.refreshToken){
+        console.log("❌ Token mismatch!")
+        throw new ApiError(401, "Refresh token is invalid or expired")
+    }
+    console.log("✅ Tokens match!")
+
+    // 5. Generate new tokens
+    console.log("🔄 Generating new tokens...")
+    const newAccessToken = user.generateAccessToken()
+    const newRefreshToken = user.generateRefreshToken()
+
+    // 6. Save
+    console.log("💾 Saving new refresh token to DB...")
+    user.refreshToken = newRefreshToken
+    await user.save({ validateBeforeSave: false })
+    console.log("✅ Saved successfully")
+
+    // 7. Response
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',  // ← FIXED!
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+
+    console.log("🍪 Setting cookies with options:", cookieOptions)
+
+    return res
+        .status(200)
+        .cookie("accessToken", newAccessToken, cookieOptions)
+        .cookie("refreshToken", newRefreshToken, cookieOptions)
+        .json(
+            new ApiRespone(
+                200,
+                { accessToken: newAccessToken },
+                "Token refreshed successfully"
+            )
+        )
 })
 
 
-export const refreshTokenRotation = asyncHandler(async(req,res)=>{
-    const { oldPassword , newPassword } = req.body
+// ### **STEP 3: Test Karke Console Dekho**
 
-    const trimOldPassword = oldPassword.trim()
-    const trimNewPassword = newPassword.trim()
+// **Postman/Thunder Client:**
+// ```
+// POST http://localhost:5000/api/auth/refresh-token
 
+// Body (raw JSON):
+// {
+//     "refreshToken": "paste_your_token_here"
+// }
 
-})
-
-
-export const updatePassword = asyncHandler(async(req,res)=>{
-    const { oldPassword , newPassword } = req.body
-
-    const trimOldPassword = oldPassword.trim()
-    const trimNewPassword = newPassword.trim()
-
-
-})
-
-
-export const updateProfile = asyncHandler(async(req,res)=>{
-    const { oldPassword , newPassword } = req.body
-
-    const trimOldPassword = oldPassword.trim()
-    const trimNewPassword = newPassword.trim()
-
-
-})
