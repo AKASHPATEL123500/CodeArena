@@ -6,61 +6,61 @@ import { ApiRespone } from "../utils/apiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
 
-export const profile = asyncHandler(async(req,res)=>{
+const profile = asyncHandler( async ( req, res ) => {
 
     const user = req.user
 
-    if(!user){
-        throw new ApiError(401,"Unauthorize access")
+    if ( !user ) {
+        throw new ApiError( 401, "Unauthorize access" )
     }
 
-    const userWithoutSenstiveData = await User.findById(user._id)
-    .select("-password -refreshToken")
+    const userWithoutSenstiveData = await User.findById( user._id )
+        .select( "-password -refreshToken" )
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {
-                data : userWithoutSenstiveData
+                data: userWithoutSenstiveData
             },
             "Fatceh profile successfully"
         )
     )
-})
+} )
 
 
-export const updatePassword = asyncHandler(async(req,res)=>{
+const updatePassword = asyncHandler( async ( req, res ) => {
 
-    const { oldPassword , newPassword } = req.body
+    const { oldPassword, newPassword } = req.body
 
     const trimOldPassword = oldPassword.trim()
     const trimNewPassword = newPassword.trim()
 
-    if( !trimOldPassword || !trimNewPassword){
-        throw new ApiError(400, "All fields are required")
+    if ( !trimOldPassword || !trimNewPassword ) {
+        throw new ApiError( 400, "All fields are required" )
     }
 
-    const user = await User.findById(req.user._id).select("+password")
+    const user = await User.findById( req.user._id ).select( "+password" )
 
-    if(!user){
-        throw new ApiError(401, "Unauthorize access")
+    if ( !user ) {
+        throw new ApiError( 401, "Unauthorize access" )
     }
 
-    const isPasswordCorrect = await user.isPasswordMatched(oldPassword)
+    const isPasswordCorrect = await user.isPasswordMatched( oldPassword )
 
-    if(!isPasswordCorrect){
-        throw new ApiError(403, "Incorrect password. try again")
+    if ( !isPasswordCorrect ) {
+        throw new ApiError( 403, "Incorrect password. try again" )
     }
 
     user.password = trimNewPassword
     await user.save(
         {
-            validateBeforeSave : false
+            validateBeforeSave: false
         }
     )
 
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {},
@@ -68,12 +68,12 @@ export const updatePassword = asyncHandler(async(req,res)=>{
         )
     )
 
-})
+} )
 
 
-export const updateProfile = asyncHandler(async(req,res)=>{
-    
-    const { name , username , email } = req.body
+const updateProfile = asyncHandler( async ( req, res ) => {
+
+    const { name, username, email } = req.body
 
     const trimName = name.trim()
     const trimUsername = username.trim()
@@ -81,148 +81,148 @@ export const updateProfile = asyncHandler(async(req,res)=>{
 
     const existingUser = await User.findOne(
         {
-            $or : [{username :trimUsername}, {email : trimEmail} ],
-            _id : {
-                $ne : req.user._id
+            $or: [ { username: trimUsername }, { email: trimEmail } ],
+            _id: {
+                $ne: req.user._id
             }
         }
     )
 
-    if(existingUser){
-        throw new ApiError(403, "Username and email already exist with this name")
+    if ( existingUser ) {
+        throw new ApiError( 403, "Username and email already exist with this name" )
     }
 
     const updateUser = await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set :{
-                name:trimName,
-                username:trimUsername,
-                email:trimEmail
+            $set: {
+                name: trimName,
+                username: trimUsername,
+                email: trimEmail
             }
         },
         {
-            new : true
+            new: true
         }
     )
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {
-                data : updateUser
+                data: updateUser
             },
             "Profile update successfully"
         )
     )
 
 
-})
+} )
 
 
-export const updateAvatar = asyncHandler(async(req,res)=>{
+const updateAvatar = asyncHandler( async ( req, res ) => {
 
     const inComingAvatar = req.file?.path
 
-    if(!inComingAvatar){
-        throw new ApiError(400,"avatar is missing")
+    if ( !inComingAvatar ) {
+        throw new ApiError( 400, "avatar is missing" )
     }
 
-    const avatar = await uploadOnCloudinary(inComingAvatar)
-    
-    if(!avatar){
-        throw new ApiError(400,"faild to upload. please try again")
+    const avatar = await uploadOnCloudinary( inComingAvatar )
+
+    if ( !avatar ) {
+        throw new ApiError( 400, "faild to upload. please try again" )
     }
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set : {
-                avatar : avatar.url
+            $set: {
+                avatar: avatar.url
             }
         },
         {
-            new : true
+            new: true
         }
-    ).select("-password -refreshToken")
+    ).select( "-password -refreshToken" )
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {
-                data : user
+                data: user
             },
             "Avatar updated successfully"
         )
     )
-})
+} )
 
 
 // ========== ADD USER SKILL ==========
-export const addUserSkill = asyncHandler(async(req, res) => {
+const addUserSkill = asyncHandler( async ( req, res ) => {
 
     // 1. Extract data
     const { skillIds, proficiency } = req.body  // Array!
     const user = req.user
 
     // 2. Validate
-    if (!skillIds || !Array.isArray(skillIds) || skillIds.length === 0) {
-        throw new ApiError(400, "skillIds array is required")
+    if ( !skillIds || !Array.isArray( skillIds ) || skillIds.length === 0 ) {
+        throw new ApiError( 400, "skillIds array is required" )
     }
 
-    if (!proficiency) {
-        throw new ApiError(400, "Proficiency is required")
+    if ( !proficiency ) {
+        throw new ApiError( 400, "Proficiency is required" )
     }
 
     // 3. Check proficiency valid
-    const allowedProficiency = ["beginner", "intermediate", "advanced"]  
-    
-    if (!allowedProficiency.includes(proficiency)) {  
-        throw new ApiError(400, "Invalid proficiency level")
+    const allowedProficiency = [ "beginner", "intermediate", "advanced" ]
+
+    if ( !allowedProficiency.includes( proficiency ) ) {
+        throw new ApiError( 400, "Invalid proficiency level" )
     }
 
     // 4. Check skills exist
-    const skills = await Skill.find({ 
+    const skills = await Skill.find( {
         _id: { $in: skillIds },
         isActive: true
-    })
+    } )
 
-    if (skills.length !== skillIds.length) {
-        throw new ApiError(404, "Some skills not found")
+    if ( skills.length !== skillIds.length ) {
+        throw new ApiError( 404, "Some skills not found" )
     }
 
     // 5. Check duplicates
-    const existingSkillIds = user.skills.map(s => s.skill.toString())
-    const duplicates = skillIds.filter(id => existingSkillIds.includes(id))
+    const existingSkillIds = user.skills.map( s => s.skill.toString() )
+    const duplicates = skillIds.filter( id => existingSkillIds.includes( id ) )
 
-    if (duplicates.length > 0) {
-        throw new ApiError(409, "Some skills already added")
+    if ( duplicates.length > 0 ) {
+        throw new ApiError( 409, "Some skills already added" )
     }
 
     // 6. Add skills
-    for (const skillId of skillIds) {
-        user.skills.push({
+    for ( const skillId of skillIds ) {
+        user.skills.push( {
             skill: skillId,
             proficiency: proficiency
-        })
+        } )
 
         // Increment totalUsers
-        const skillDoc = await Skill.findById(skillId)
-        if (skillDoc) {
+        const skillDoc = await Skill.findById( skillId )
+        if ( skillDoc ) {
             await skillDoc.incrementUserCount()
         }
     }
 
     // 7. Save
-    await user.save({ validateBeforeSave: false })
+    await user.save( { validateBeforeSave: false } )
 
     // 8. Get fresh data without password
-    const updatedUser = await User.findById(user._id)
-        .select('-password -refreshToken')
-        .populate('skills.skill', 'name slug icon category')
+    const updatedUser = await User.findById( user._id )
+        .select( '-password -refreshToken' )
+        .populate( 'skills.skill', 'name slug icon category' )
 
     // 9. Response
-    return res.status(201).json(
+    return res.status( 201 ).json(
         new ApiRespone(
             201,
             {
@@ -232,20 +232,20 @@ export const addUserSkill = asyncHandler(async(req, res) => {
             "Skills added successfully"
         )
     )
-})
+} )
 
 
-export const getUserSkill = asyncHandler(async(req, res) => {
+const getUserSkill = asyncHandler( async ( req, res ) => {
 
     const user = req.user
 
     // Populate
-    await user.populate('skills.skill', 'name slug icon category difficulty totalUsers')
+    await user.populate( 'skills.skill', 'name slug icon category difficulty totalUsers' )
 
     // Sort (newest first)
-    user.skills.sort((a, b) => b.addedAt - a.addedAt)
+    user.skills.sort( ( a, b ) => b.addedAt - a.addedAt )
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {
@@ -255,43 +255,43 @@ export const getUserSkill = asyncHandler(async(req, res) => {
             "Skills fetched successfully"
         )
     )
-})
+} )
 
 
-export const updateUserSkill = asyncHandler(async(req, res) => {
+const updateUserSkill = asyncHandler( async ( req, res ) => {
 
     const { skillId } = req.params
     const { proficiency } = req.body  // Fixed extraction!
     const user = req.user
 
     // Validate
-    if (!skillId || !proficiency) {
-        throw new ApiError(400, "All fields are required")
+    if ( !skillId || !proficiency ) {
+        throw new ApiError( 400, "All fields are required" )
     }
 
-    const allowedProficiency = ["beginner", "intermediate", "advanced"]  // Fixed typo!
+    const allowedProficiency = [ "beginner", "intermediate", "advanced" ]  // Fixed typo!
 
-    if (!allowedProficiency.includes(proficiency)) {  // Added NOT!
-        throw new ApiError(400, "Invalid proficiency level")
+    if ( !allowedProficiency.includes( proficiency ) ) {  // Added NOT!
+        throw new ApiError( 400, "Invalid proficiency level" )
     }
 
     // Find skill
-    const userSkill = user.skills.find(s => s.skill.toString() === skillId)
+    const userSkill = user.skills.find( s => s.skill.toString() === skillId )
 
-    if (!userSkill) {
-        throw new ApiError(404, "Skill not found in your profile")
+    if ( !userSkill ) {
+        throw new ApiError( 404, "Skill not found in your profile" )
     }
 
     // Update
     userSkill.proficiency = proficiency
 
     // Save
-    await user.save({ validateBeforeSave: false })
+    await user.save( { validateBeforeSave: false } )
 
     // Populate & return
-    await user.populate('skills.skill', 'name slug icon')
+    await user.populate( 'skills.skill', 'name slug icon' )
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {
@@ -300,42 +300,92 @@ export const updateUserSkill = asyncHandler(async(req, res) => {
             "Proficiency updated successfully"
         )
     )
-})
+} )
 
-export const removeUserSkill = asyncHandler(async(req, res) => {
+const removeUserSkill = asyncHandler( async ( req, res ) => {
 
     const { skillId } = req.params
     const user = req.user
 
     // Validate
-    if (!skillId) {
-        throw new ApiError(400, "Skill ID is required")
+    if ( !skillId ) {
+        throw new ApiError( 400, "Skill ID is required" )
     }
 
     // Check exists
-    const skillExists = user.skills.some(s => s.skill.toString() === skillId)
+    const skillExists = user.skills.some( s => s.skill.toString() === skillId )
 
-    if (!skillExists) {
-        throw new ApiError(404, "Skill not found in your profile")
+    if ( !skillExists ) {
+        throw new ApiError( 404, "Skill not found in your profile" )
     }
 
     // Remove
-    user.skills = user.skills.filter(s => s.skill.toString() !== skillId)
+    user.skills = user.skills.filter( s => s.skill.toString() !== skillId )
 
     // Decrement totalUsers
-    const skill = await Skill.findById(skillId)  // Fixed typo!
-    if (skill) {
+    const skill = await Skill.findById( skillId )  // Fixed typo!
+    if ( skill ) {
         await skill.decrementUserCount()
     }
 
     // Save
-    await user.save({ validateBeforeSave: false })
+    await user.save( { validateBeforeSave: false } )
 
-    return res.status(200).json(
+    return res.status( 200 ).json(
         new ApiRespone(
             200,
             {},
             "Skill removed successfully"
         )
     )
-})
+} )
+
+
+const addUserGoal = asyncHandler( async ( req, res ) => {
+
+    const { title, discriptions } = req.body
+    if ( !title || !discriptions ) throw new ApiError( 400, "All filed are required" )
+} )
+
+
+const getUserGoal = asyncHandler( async ( req, res ) => {
+
+} )
+
+
+const updateUserGoal = asyncHandler( async ( req, res ) => {
+
+} )
+
+
+const removeUserGoal = asyncHandler( async ( req, res ) => {
+
+} )
+
+
+const getUserGoalById = asyncHandler( async ( req, res ) => {
+
+} )
+
+
+const updateMilestoneUserGoal = asyncHandler( async ( req, res ) => {
+
+} )
+
+
+export {
+    profile,
+    updateProfile,
+    updatePassword,
+    updateAvatar,
+    addUserSkill,
+    getUserSkill,
+    updateUserSkill,
+    removeUserSkill,
+    addUserGoal,
+    getUserGoal,
+    updateUserGoal,
+    removeUserGoal,
+    getUserGoalById,
+    updateMilestoneUserGoal
+}

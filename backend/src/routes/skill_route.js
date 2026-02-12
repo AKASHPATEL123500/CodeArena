@@ -1,5 +1,10 @@
 import express from "express";
-import { createSkill, getAllSkill, getSkillBySlug, searchSkills } from "../controllers/skill_controller.js";
+import { 
+    createSkill, 
+    getAllSkill, 
+    getSkillBySlug, 
+    searchSkills 
+} from "../controllers/skill_controller.js";
 import { verifyToken } from "../middlewares/isAuth.js";
 import { verifyAdmin } from "../middlewares/admin.js";
 
