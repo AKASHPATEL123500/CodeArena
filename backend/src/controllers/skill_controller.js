@@ -37,44 +37,40 @@ export const createSkill = asyncHandler(async (req, res) => {
 
 // ================= GET ALL =================
 
-export const getAllSkill = asyncHandler(async (req, res) => {
+export const getAllSkill = asyncHandler(async(req,res)=>{
 
-    const { difficulty, category } = req.query;
+    const { difficulty, category } = req.query
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = ( page - 1 ) * limit
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;   // ✅ FIXED
+    const filter = { isActive : true }
 
-    const filter = { isActive: true };
-
-    if (category) filter.category = category;
-    if (difficulty) filter.difficulty = difficulty;
+    if(category) filter.category = category
+    if(difficulty) filter.difficulty = difficulty
 
     const skills = await Skill.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .select("name slug category difficulty icon totalUsers");
+    .sort({createdAt : -1})
+    .skip(skip)
+    .limit(limit)
+    .select("name slug difficulty category description icon totalUsers")
 
-    const total = await Skill.countDocuments(filter);
-    const totalPage = Math.ceil(total / limit);
-
+    const total = await Skill.countDocuments(filter)
+    const totalPage = Math.ceil(total / limit)
     return res.status(200).json(
-        new ApiResponse(
+        new ApiRespone(
             200,
             {
-                skills,
-                pagination: {
-                    total,
-                    page,
-                    totalPage,
-                    limit
-                }
+                data : skills,
+                total,
+                limit,
+                skip,
+                totalPage
             },
-            "Skills fetched successfully"
+            "Skills Data fatced successfully"
         )
-    );
-});
+    )
+})
 
 
 // ================= GET BY SLUG =================
