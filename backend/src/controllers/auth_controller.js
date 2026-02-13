@@ -5,10 +5,13 @@ import User from "../models/user_model.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendMail } from "../utils/sendMail.js";
+import { genrateOtp } from "../utils/otp.js";
+import QRCode from "qrcode"
+import speakeasy from "speakeasy"
 
 
-
-export const signup = asyncHandler( async ( req, res ) => {
+const signup = asyncHandler( async ( req, res ) => {
 
     const { name, username, email, password, role } = req.body
 
@@ -98,7 +101,7 @@ export const signup = asyncHandler( async ( req, res ) => {
 } )
 
 
-export const signin = asyncHandler( async ( req, res ) => {
+const signin = asyncHandler( async ( req, res ) => {
 
     // 1. Get data from request body
     const { email, password } = req.body
@@ -150,6 +153,20 @@ export const signin = asyncHandler( async ( req, res ) => {
     // 8. Password correct - reset login attempts
     await existingUser.resetLoginAttempts()
 
+    if ( existingUser.twoFactorEnabled ) {
+        return res
+            .status( 200 )
+            .json(
+                new ApiRespone(
+                    200,
+                    {
+                        twoFactorRequired: true,
+                        userId: existingUser._id
+                    },
+                    "Enter 2FA Code"
+                )
+            )
+    }
     // 9. Generate tokens
     const accessToken = existingUser.generateAccessToken()
     const refreshToken = existingUser.generateRefreshToken()
@@ -190,7 +207,7 @@ export const signin = asyncHandler( async ( req, res ) => {
 } )
 
 
-export const signout = asyncHandler( async ( req, res ) => {
+const signout = asyncHandler( async ( req, res ) => {
 
     await User.findByIdAndUpdate(
         req.user._id,
@@ -221,7 +238,7 @@ export const signout = asyncHandler( async ( req, res ) => {
 } )
 
 
-export const refreshTokenRotation = asyncHandler( async ( req, res ) => {
+const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 
     // 1. Get token
     const inCommingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
@@ -286,14 +303,231 @@ export const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 } )
 
 
-// ### **STEP 3: Test Karke Console Dekho**
+const forgetPassword = asyncHandler( async ( req, res ) => {
 
-// **Postman/Thunder Client:**
-// ```
-// POST http://localhost:5000/api/auth/refresh-token
+    const { email } = req.body
 
-// Body (raw JSON):
-// {
-//     "refreshToken": "paste_your_token_here"
-// }
+    if ( !email ) {
+        throw new ApiError(
+            400,
+            "Email is required"
+        )
+    }
 
+    const user = await User.findOne( { email } )
+
+    if ( !user ) {
+        throw new ApiError(
+            404,
+            "User not found"
+        )
+    }
+
+    const otp = genrateOtp()
+    user.resetOtp = otp
+    user.resetOtpExpire = Date.now() + 10 * 60 * 1000
+
+    await user.save( { validateBeforeSave: false } )
+
+    await sendMail(
+        {
+            to: email,
+            subject: "Password reset otp",
+            text: `Your otp is${ otp }`
+        }
+    )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "OTP send to your email. please check"
+            )
+        )
+} )
+
+
+const verifyOtp = asyncHandler( async ( req, res ) => {
+    const { email, otp } = req.body
+
+    if ( !email || !otp ) throw new ApiError( 400, "All fields are required" )
+
+    const user = await User.findOne( { email } )
+
+    if ( !user || user.resetOtp !== otp ) throw new ApiError( 400, "Invaild OTP" )
+
+    if ( user.resetOtpExpire < Date.now() ) throw new ApiError( 400, "OTP is expired" )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "Verify OTP successfully"
+            )
+        )
+} )
+
+
+const resetPassword = asyncHandler( async ( req, res ) => {
+
+    const { email, otp, newPassword, confirmPassword } = req.body
+
+    if ( !email || !otp || !newPassword || !confirmPassword ) {
+        throw new ApiError( 400, "All fileds are required" )
+    }
+
+    if ( newPassword !== confirmPassword ) {
+        throw new ApiError( 400, "Password do not match" )
+    }
+
+    const user = await User.findOne( { email } )
+
+    if ( !user ) throw new ApiError( 404, "User not found" )
+
+    if ( !user || user.resetOtp !== otp ) {
+        throw new ApiError( 400, "Invaild OTP" )
+    }
+
+    if ( user.resetOtpExpire < Date.now() ) {
+        throw new ApiError( 400, "OTP expired" )
+    }
+
+    user.password = newPassword
+    user.resetOtp = undefined
+    user.resetOtpExpire = undefined
+    user.isVerified = true
+
+    user.save( { validateBeforeSave: false } )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "Password reset successfully"
+            )
+        )
+} )
+
+
+const genrate2FASecret = asyncHandler( async ( req, res ) => {
+
+    const user = req.user
+
+    const secret = speakeasy.generateSecret(
+        {
+            name: `CodeArena(${ user.email })`
+        }
+    )
+
+    user.twoFactorSecret = secret.base32
+    await user.save()
+
+    const qr = await QRCode.toDataURL( secret.otpauth_url )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {
+                    QrCode: qr
+                },
+                "Sacn QR with Authenticatior"
+            )
+        )
+} )
+
+const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
+
+    const { token } = req.body
+
+    const user = req.user
+
+    const verify = speakeasy.totp.verify(
+        {
+            secret: user.twoFactorSecret,
+            encoding: "base32",
+            token
+        }
+    )
+
+    if ( !verify ) throw new ApiError( 400, "Invaild code" )
+
+    user.twoFactorEnabled = true
+    await user.save()
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "2FA Enable successfully"
+            )
+        )
+} )
+
+
+const verify2FALogin = asyncHandler( async ( req, res ) => {
+
+    const { userId, token } = req.body
+
+    if ( !userId || !token )
+        throw new ApiError( 400, "Missing data" )
+
+    const user = await User.findById( userId )
+
+    if ( !user || !user.twoFactorEnabled )
+        throw new ApiError( 400, "Invalid request" )
+
+    const ok = speakeasy.totp.verify( {
+        secret: user.twoFactorSecret,
+        encoding: "base32",
+        token
+    } )
+
+    if ( !ok ) throw new ApiError( 400, "Wrong 2FA Code" )
+
+    // ✅ ISSUE TOKENS HERE
+    const accessToken = user.generateAccessToken()
+    const refreshToken = user.generateRefreshToken()
+
+    user.refreshToken = refreshToken
+    user.lastLogin = Date.now()
+    await user.save( { validateBeforeSave: false } )
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+
+    return res
+        .cookie( "accessToken", accessToken, cookieOptions )
+        .cookie( "refreshToken", refreshToken, cookieOptions )
+        .json(
+            new ApiRespone( 200, {}, "2FA Login success" )
+        )
+} )
+
+
+
+export {
+    signup,
+    signin,
+    signout,
+    refreshTokenRotation,
+    forgetPassword,
+    verifyOtp,
+    resetPassword,
+    genrate2FASecret,
+    verifyAndEnable2FA,
+    verify2FALogin
+}

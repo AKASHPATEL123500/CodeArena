@@ -2,39 +2,39 @@ import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema( {
     name: {
         type: String,
-        required: [true, "Name is required"],
+        required: [ true, "Name is required" ],
         trim: true,
-        minlength: [2, "Name must be at least 2 characters"],
-        maxlength: [50, "Name cannot exceed 50 characters"],
-        index : true
+        minlength: [ 2, "Name must be at least 2 characters" ],
+        maxlength: [ 50, "Name cannot exceed 50 characters" ],
+        index: true
     },
     username: {
         type: String,
         trim: true,
         unique: true,
-        sparse: true , // ← ADDED,
-        index : true
+        sparse: true, // ← ADDED,
+        index: true
     },
     email: {
         type: String,
-        required: [true, "Email is required"],
+        required: [ true, "Email is required" ],
         trim: true,
         unique: true,
         lowercase: true,  // ← ADDED
-        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']  // ← ADDED
+        match: [ /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email' ]  // ← ADDED
     },
     password: {
         type: String,
-        required: [true, "Password is required"],
-        minlength: [8, "Password must be at least 8 characters"],
+        required: [ true, "Password is required" ],
+        minlength: [ 8, "Password must be at least 8 characters" ],
         select: false  // ← ADDED
     },
     role: {
         type: String,
-        enum: ["student", "startup", "mentor"],
+        enum: [ "student", "startup", "mentor" ],
         default: "student"
     },
     avatar: {
@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
     },
     bio: {
         type: String,
-        maxlength: [500, "Bio cannot exceed 500 characters"],
+        maxlength: [ 500, "Bio cannot exceed 500 characters" ],
         default: "Welcome to CodeArena"  // ← TYPO FIX
     },
     dateOfBirth: {  // ← TYPO FIX (capital D removed)
@@ -56,25 +56,25 @@ const userSchema = new mongoose.Schema({
         city: String,
         country: String
     },
-    skills: [{
-        skill :{
-            type : Schema.Types.ObjectId,
+    skills: [ {
+        skill: {
+            type: Schema.Types.ObjectId,
             ref: "Skill",
-            required : true
+            required: true
         },
-        proficiency :{
-            type : String,
-            enum : ["beginner","intermediate","advanced"],
-            default : "beginner"
+        proficiency: {
+            type: String,
+            enum: [ "beginner", "intermediate", "advanced" ],
+            default: "beginner"
         },
-        addedAt : {
-            type : Date,
-            default : Date.now
+        addedAt: {
+            type: Date,
+            default: Date.now
         }
-    }],
+    } ],
     experienceLevel: {
         type: String,
-        enum: ["beginner", "intermediate", "advanced"],  // ← ORDER FIX
+        enum: [ "beginner", "intermediate", "advanced" ],  // ← ORDER FIX
         default: "beginner"
     },
     githubUsername: {
@@ -91,8 +91,8 @@ const userSchema = new mongoose.Schema({
     rating: {
         type: Number,
         default: 1500,
-        min: [0, "Rating cannot be negative"],
-        index : true
+        min: [ 0, "Rating cannot be negative" ],
+        index: true
     },
     battlesPlayed: {
         type: Number,
@@ -151,7 +151,7 @@ const userSchema = new mongoose.Schema({
         type: Date
     },
     refreshToken: {
-        type: String, 
+        type: String,
     },
     loginAttempts: {
         type: Number,
@@ -159,12 +159,25 @@ const userSchema = new mongoose.Schema({
     },
     lockUntil: {  // ← ADDED
         type: Date
+    },
+    resetOtp: {
+        type: String
+    },
+    resetOtpExpire: {
+        type: String
+    },
+    twoFactorSecret: {
+        type: String
+    },
+    twoFactorEnabled: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true,
     toJSON: {  // ← ADDED
         virtuals: true,
-        transform: function(doc, ret) {
+        transform: function ( doc, ret ) {
             delete ret.password;
             delete ret.refreshToken;
             delete ret.__v;
@@ -172,44 +185,44 @@ const userSchema = new mongoose.Schema({
         }
     },
     toObject: { virtuals: true }
-});
+} );
 
 
 // ========== VIRTUALS ==========
-userSchema.virtual('winRate').get(function() {
-    if (this.battlesPlayed === 0) return 0;
-    return ((this.battlesWon / this.battlesPlayed) * 100).toFixed(2);
-});
+userSchema.virtual( 'winRate' ).get( function () {
+    if ( this.battlesPlayed === 0 ) return 0;
+    return ( ( this.battlesWon / this.battlesPlayed ) * 100 ).toFixed( 2 );
+} );
 
 // ========== MIDDLEWARE ==========
-userSchema.pre("save", async function() {
-    if (!this.isModified("password")) return;
-    
-    this.password = await bcrypt.hash(this.password, 12);
-    
-});
+userSchema.pre( "save", async function () {
+    if ( !this.isModified( "password" ) ) return;
+
+    this.password = await bcrypt.hash( this.password, 12 );
+
+} );
 
 // Password change track 
-userSchema.pre("save", async function() {
-    if (!this.isModified("password") || this.isNew) return ;
-    
+userSchema.pre( "save", async function () {
+    if ( !this.isModified( "password" ) || this.isNew ) return;
+
     this.passwordChangedAt = Date.now() - 1000;  // 1 sec pehle (JWT issue fix)
-    
-});
+
+} );
 
 // ========== METHODS ==========
-userSchema.methods.isPasswordMatched = async function(enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.isPasswordMatched = async function ( enteredPassword ) {
+    return await bcrypt.compare( enteredPassword, this.password );
 };
 
-userSchema.methods.generateAccessToken = function() {  
+userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             _id: this._id,
             name: this.name,
             username: this.username,
             email: this.email,
-            role: this.role  
+            role: this.role
         },
         process.env.ACCESS_TOKEN_SECRET_KEY,
         {
@@ -218,7 +231,7 @@ userSchema.methods.generateAccessToken = function() {
     );
 };
 
-userSchema.methods.generateRefreshToken = function() {  
+userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         {
             _id: this._id
@@ -230,8 +243,8 @@ userSchema.methods.generateRefreshToken = function() {
     );
 };
 
-userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
-    if (this.passwordChangedAt) {
+userSchema.methods.changedPasswordAfter = function ( JWTTimestamp ) {
+    if ( this.passwordChangedAt ) {
         const changedTimestamp = parseInt(
             this.passwordChangedAt.getTime() / 1000,
             10
@@ -241,32 +254,32 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
     return false;
 };
 
-userSchema.methods.incrementLoginAttempts = function() {
-    if (this.lockUntil && this.lockUntil < Date.now()) {
-        return this.updateOne({
+userSchema.methods.incrementLoginAttempts = function () {
+    if ( this.lockUntil && this.lockUntil < Date.now() ) {
+        return this.updateOne( {
             $set: { loginAttempts: 1 },
             $unset: { lockUntil: 1 }
-        });
+        } );
     }
-    
+
     const updates = { $inc: { loginAttempts: 1 } };
     const maxAttempts = 5;
-    
-    if (this.loginAttempts + 1 >= maxAttempts && !this.lockUntil) {
-        updates.$set = { 
+
+    if ( this.loginAttempts + 1 >= maxAttempts && !this.lockUntil ) {
+        updates.$set = {
             lockUntil: Date.now() + 30 * 60 * 1000
         };
     }
-    
-    return this.updateOne(updates);
+
+    return this.updateOne( updates );
 };
 
-userSchema.methods.resetLoginAttempts = function() {
-    return this.updateOne({
+userSchema.methods.resetLoginAttempts = function () {
+    return this.updateOne( {
         $set: { loginAttempts: 0 },
         $unset: { lockUntil: 1 }
-    });
+    } );
 };
 
-const User = mongoose.model("User",userSchema)
+const User = mongoose.model( "User", userSchema )
 export default User

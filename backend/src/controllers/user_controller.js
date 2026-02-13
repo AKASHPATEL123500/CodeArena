@@ -158,7 +158,6 @@ const updateAvatar = asyncHandler( async ( req, res ) => {
 } )
 
 
-// ========== ADD USER SKILL ==========
 const addUserSkill = asyncHandler( async ( req, res ) => {
 
     // 1. Extract data
@@ -302,6 +301,7 @@ const updateUserSkill = asyncHandler( async ( req, res ) => {
     )
 } )
 
+
 const removeUserSkill = asyncHandler( async ( req, res ) => {
 
     const { skillId } = req.params
@@ -341,37 +341,6 @@ const removeUserSkill = asyncHandler( async ( req, res ) => {
 } )
 
 
-const addUserGoal = asyncHandler( async ( req, res ) => {
-
-    const { title, discriptions } = req.body
-    if ( !title || !discriptions ) throw new ApiError( 400, "All filed are required" )
-} )
-
-
-const getUserGoal = asyncHandler( async ( req, res ) => {
-
-} )
-
-
-const updateUserGoal = asyncHandler( async ( req, res ) => {
-
-} )
-
-
-const removeUserGoal = asyncHandler( async ( req, res ) => {
-
-} )
-
-
-const getUserGoalById = asyncHandler( async ( req, res ) => {
-
-} )
-
-
-const updateMilestoneUserGoal = asyncHandler( async ( req, res ) => {
-
-} )
-
 
 export {
     profile,
@@ -382,10 +351,4 @@ export {
     getUserSkill,
     updateUserSkill,
     removeUserSkill,
-    addUserGoal,
-    getUserGoal,
-    updateUserGoal,
-    removeUserGoal,
-    getUserGoalById,
-    updateMilestoneUserGoal
 }
