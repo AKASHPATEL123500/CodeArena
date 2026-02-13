@@ -153,6 +153,10 @@ const signin = asyncHandler( async ( req, res ) => {
     // 8. Password correct - reset login attempts
     await existingUser.resetLoginAttempts()
 
+    if ( !existingUser.isVerified ) {
+        throw new ApiError( 400, "Verify your emial" )
+    }
+
     if ( existingUser.twoFactorEnabled ) {
         return res
             .status( 200 )
@@ -303,6 +307,74 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 } )
 
 
+const sendOtpEmail = asyncHandler( async ( req, res ) => {
+
+    const { email } = req.body
+    const trimEmail = email.trim()
+
+    if ( !trimEmail ) throw new ApiError( 400, "Email is required" )
+
+    const user = await User.findOne( { email: trimEmail.toLowerCase() } )
+    if ( !user ) throw new ApiError( 404, "Invaild creadentials" )
+
+    const otp = genrateOtp()
+    user.emaillOtp = otp
+    user.emailOtpExpire = Date.now() + 10 * 60 * 1000
+
+    await user.save( { validateBeforeSave: false } )
+
+    await sendMail(
+        {
+            to: email,
+            subject: "Email verify OTP",
+            text: `Your otp is ${ otp }`
+        }
+    )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "OTP sent successfully on your email. please check"
+            )
+        )
+} )
+
+
+
+const verifyEmailOtp = asyncHandler( async ( req, res ) => {
+
+    const { email, otp } = req.body
+    const trimEmail = email.trim()
+
+    if ( !trimEmail || !otp ) throw new ApiError( 400, "All fields are required" )
+
+    const user = await User.findOne( { email: trimEmail.toLowerCase() } )
+
+    if ( !user || user.emaillOtp !== otp ) throw new ApiError( 404, "Invalid credentials or OTP" )
+
+
+    if ( user.emailOtpExpire < Date.now() ) throw new ApiError( 400, "expired OTP" )
+
+    user.emaillOtp = undefined
+    user.emailOtpExpire = undefined
+    user.isVerified = true
+
+    await user.save( { validateBeforeSave: false } )
+
+    return res.status( 200 ).json(
+        new ApiRespone(
+            200,
+            {},
+            "Email verify successfully"
+        )
+    )
+
+} )
+
+
 const forgetPassword = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -349,7 +421,9 @@ const forgetPassword = asyncHandler( async ( req, res ) => {
 } )
 
 
+
 const verifyOtp = asyncHandler( async ( req, res ) => {
+
     const { email, otp } = req.body
 
     if ( !email || !otp ) throw new ApiError( 400, "All fields are required" )
@@ -370,6 +444,7 @@ const verifyOtp = asyncHandler( async ( req, res ) => {
             )
         )
 } )
+
 
 
 const resetPassword = asyncHandler( async ( req, res ) => {
@@ -442,6 +517,7 @@ const genrate2FASecret = asyncHandler( async ( req, res ) => {
             )
         )
 } )
+
 
 const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
 
@@ -529,5 +605,7 @@ export {
     resetPassword,
     genrate2FASecret,
     verifyAndEnable2FA,
-    verify2FALogin
+    verify2FALogin,
+    sendOtpEmail,
+    verifyEmailOtp
 }

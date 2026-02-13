@@ -172,6 +172,12 @@ const userSchema = new mongoose.Schema( {
     twoFactorEnabled: {
         type: Boolean,
         default: false
+    },
+    emaillOtp: {
+        type: String
+    },
+    emailOtpExpire: {
+        type: String
     }
 }, {
     timestamps: true,

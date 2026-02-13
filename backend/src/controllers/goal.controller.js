@@ -4,6 +4,7 @@ import { ApiError } from "../utils/apiError.js"
 import { ApiRespone } from "../utils/apiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
+
 const addGoal = asyncHandler( async ( req, res ) => {
 
     const {
@@ -98,21 +99,133 @@ const getGoal = asyncHandler( async ( req, res ) => {
 
 const updateGoal = asyncHandler( async ( req, res ) => {
 
+    const { goalId } = req.params
+
+    const { title, description, status, targetSkills, deadline, milestones, isPublic } = req.body
+
+    if ( !goalId ) throw new ApiError( 400, "Goald id must be sent" )
+
+    const goal = await Goal.findById( goalId ).populate( "targetSkills", "name slug icon category difficulty" )
+
+    if ( !goal ) throw new ApiError( 404, "Goal not found" )
+
+    if ( title ) goal.title = title?.trim()
+    if ( description !== undefined ) goal.description = description?.trim()
+    if ( status ) goal.status = status
+    if ( isPublic !== undefined ) goal.isPublic = isPublic
+    if ( deadline ) {
+        const deadLineDate = new Date( deadline )
+        if ( deadLineDate < Date.now() ) {
+            throw new ApiError( 400, "Deadline date must be feauters date" )
+        }
+        goal.deadline = deadLineDate
+    }
+
+    await goal.save()
+
+    await goal.populate( "targetSkills", "name slug icon" )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                { goal },
+                "Update goals successfully"
+            )
+        )
+
+
 } )
 
 
 const removeGoal = asyncHandler( async ( req, res ) => {
 
+    const { goalId } = req.params
+
+    if ( !goalId ) throw new ApiError( 400, "Filed are required" )
+
+    const goal = await Goal.findById( goalId )
+
+    if ( !goal ) throw new ApiError( 404, "Invaild Goal Id" )
+
+    if ( goal.owner.toString() !== req.user._id.toString() ) throw new ApiError( 403, "Access denied" )
+
+    goal.status = "abandoned"
+    await goal.save()
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "Remove Goal successfully"
+            )
+        )
 } )
 
 
 const getGoalById = asyncHandler( async ( req, res ) => {
+    const { goalId } = req.params
+    if ( !goalId ) throw new ApiError( 400, "Filed are required" )
 
+    const goal = await Goal.findById( goalId ).populate( "targetSkills", "name slug icon category difficulty" )
+
+    if ( !goal ) throw new ApiError( 404, "Invaild Goal Id" )
+
+    if ( goal.owner.toString() !== req.user._id.toString() )
+        throw new ApiError( 403, "You don't have permission to view this goal" )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiError(
+                200,
+                { goal },
+                "Successfully get goal by id"
+            )
+        )
 } )
 
 
 const updateMilestoneGoal = asyncHandler( async ( req, res ) => {
 
+    const { goalId, milestoneId } = req.params
+    const { completed } = req.body
+
+    if ( !completed ) throw new ApiError( 400, "All feialds are required" )
+
+    const goal = await Goal.findById( goalId )
+
+    if ( !goal ) throw new ApiError( 404, "Goal not found" )
+
+    if ( goal.owner.toString() !== req.user._id.toString() )
+        throw new ApiError( 403, "Access deined" )
+
+    const milestone = await goal.milestones.id( milestoneId )
+
+    if ( !milestone ) throw new ApiError( 404, "Milestone id not match" )
+
+    if ( completed === true ) {
+        milestone.completed = true
+        milestone.completedAt = Date.now()
+    } else if ( completed === false ) {
+        milestone.completed = false
+        milestone.completedAt = null
+    }
+
+    await goal.updatedProgress()
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                { goal },
+                "update Milestone Goal successfully"
+            )
+        )
 } )
 
 

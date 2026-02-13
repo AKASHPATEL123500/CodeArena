@@ -5,11 +5,13 @@ import {
     genrate2FASecret,
     refreshTokenRotation,
     resetPassword,
+    sendOtpEmail,
     signin,
     signout,
     signup,
     verify2FALogin,
     verifyAndEnable2FA,
+    verifyEmailOtp,
     verifyOtp
 } from "../controllers/auth_controller.js"
 import { verifyToken } from "../middlewares/isAuth.js"
@@ -36,7 +38,8 @@ authRouter.post( "/reset-password", resetPassword )
 authRouter.post( "/2fa-secret-key", verifyToken, genrate2FASecret )
 authRouter.post( "/verify-2fa", verifyToken, verifyAndEnable2FA )
 authRouter.post( "/verify-2fa-login", verifyToken, verify2FALogin )
-
+authRouter.post( "/send-otp-email", sendOtpEmail )
+authRouter.post( "/verify-email", verifyEmailOtp )
 
 
 export default authRouter
