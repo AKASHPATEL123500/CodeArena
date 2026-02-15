@@ -193,8 +193,8 @@ const signin = asyncHandler( async ( req, res ) => {
     // 12. Cookie options
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        secure: true,
+        sameSite: 'none',
         maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days
     }
 
@@ -292,8 +292,8 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
     // 7. Response
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',  // ← FIXED!
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        secure: true,  // ← FIXED!
+        sameSite:'none',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
@@ -586,8 +586,8 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
 
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: true,
+        sameSite: 'none',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
@@ -778,8 +778,8 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        secure: true,
+        sameSite:'none',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
