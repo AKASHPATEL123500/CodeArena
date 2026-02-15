@@ -293,7 +293,7 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
     const cookieOptions = {
         httpOnly: true,
         secure: true,  // ← FIXED!
-        sameSite:'none',
+        sameSite: 'none',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
@@ -614,7 +614,7 @@ const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
     const options = await generateRegistrationOptions(
         {
             rpName: "CodeArena",
-            rpID: "localhost",
+            rpID: "code-arena-seven.vercel.app",
 
             userID: new TextEncoder().encode( user._id.toString() ),
             userName: user.email,
@@ -658,8 +658,8 @@ const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
         {
             response: credential,
             expectedChallenge: user.currentChallenge,
-            expectedOrigin: "http://localhost:5173",
-            expectedRPID: "localhost",
+            expectedOrigin: "https://code-arena-seven.vercel.app",
+            expectedRPID: "code-arena-seven.vercel.app",
             requireUserVerification: true
         }
     )
@@ -710,7 +710,7 @@ const startPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const options = await generateAuthenticationOptions(
         {
-            rpID: "localhost",
+            rpID: "code-arena-seven.vercel.app",
             allowCredentials,
             userVerification: "required"
         }
@@ -754,8 +754,8 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
     const verification = await verifyAuthenticationResponse( {
         response: credential,
         expectedChallenge: user.currentChallenge,
-        expectedOrigin: "http://localhost:5173",
-        expectedRPID: "localhost",
+        expectedOrigin: "https://code-arena-seven.vercel.app",
+        expectedRPID: "code-arena-seven.vercel.app",
         credential: {
             id: passkey.credentialID,
             publicKey: Buffer.from( passkey.publicKey, "base64url" ),
@@ -779,7 +779,7 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
     const cookieOptions = {
         httpOnly: true,
         secure: true,
-        sameSite:'none',
+        sameSite: 'none',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
