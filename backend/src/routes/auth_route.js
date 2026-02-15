@@ -9,10 +9,14 @@ import {
     signin,
     signout,
     signup,
+    startPasskeyLogin,
+    startPasskeyRegistration,
     verify2FALogin,
     verifyAndEnable2FA,
     verifyEmailOtp,
-    verifyOtp
+    verifyOtp,
+    verifyPasskeyLogin,
+    verifyPasskeyRegistration
 } from "../controllers/auth_controller.js"
 import { verifyToken } from "../middlewares/isAuth.js"
 import { authLimiter } from "../middlewares/rete_limter.js"
@@ -37,9 +41,14 @@ authRouter.post( "/verify-otp", verifyOtp )
 authRouter.post( "/reset-password", resetPassword )
 authRouter.post( "/2fa-secret-key", verifyToken, genrate2FASecret )
 authRouter.post( "/verify-2fa", verifyToken, verifyAndEnable2FA )
-authRouter.post( "/verify-2fa-login", verifyToken, verify2FALogin )
+authRouter.post( "/verify-2fa-login", verify2FALogin )
 authRouter.post( "/send-otp-email", sendOtpEmail )
 authRouter.post( "/verify-email", verifyEmailOtp )
+authRouter.post( "/passkey/register/start", verifyToken, startPasskeyRegistration )
+authRouter.post( "/passkey/register/verify", verifyToken, verifyPasskeyRegistration )
+authRouter.post( "/passkey/login/start", startPasskeyLogin )
+authRouter.post( "/passkey/login/verify", verifyPasskeyLogin )
+
 
 
 export default authRouter

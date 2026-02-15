@@ -178,7 +178,38 @@ const userSchema = new mongoose.Schema( {
     },
     emailOtpExpire: {
         type: String
-    }
+    },
+    currentChallenge: {
+        type: String
+    },
+    passkeys: [
+        {
+            credentialID: {
+                type: String,
+                required: true
+            },
+            publicKey: {
+                type: String,
+                required: true
+            },
+            counter: {
+                type: Number,
+                default: 0
+            },
+            deviceName: {
+                type: String
+            },
+            transports: [
+                {
+                    type: String
+                }
+            ],
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ]
 }, {
     timestamps: true,
     toJSON: {  // ← ADDED

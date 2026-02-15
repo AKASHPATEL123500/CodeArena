@@ -8,7 +8,12 @@ import jwt from "jsonwebtoken";
 import { sendMail } from "../utils/sendMail.js";
 import { genrateOtp } from "../utils/otp.js";
 import QRCode from "qrcode"
-import speakeasy from "speakeasy"
+import speakeasy, { counter } from "speakeasy"
+import { otpTemplate } from "../utils/emailTemplates.js";
+import { generateRegistrationOptions } from "@simplewebauthn/server"
+import { verifyRegistrationResponse } from "@simplewebauthn/server";
+import { generateAuthenticationOptions } from "@simplewebauthn/server";
+import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 
 const signup = asyncHandler( async ( req, res ) => {
@@ -327,7 +332,8 @@ const sendOtpEmail = asyncHandler( async ( req, res ) => {
         {
             to: email,
             subject: "Email verify OTP",
-            text: `Your otp is ${ otp }`
+            text: "",
+            html: otpTemplate( otp, user.name )
         }
     )
 
@@ -595,6 +601,203 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
 
 
 
+const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
+
+    const user = req.user
+
+    const excludeCredentials = user.passkeys.map( pk => ( {
+        id: pk.credentialID,
+        type: "public-key"
+    } ) )
+
+
+    const options = await generateRegistrationOptions(
+        {
+            rpName: "CodeArena",
+            rpID: "localhost",
+
+            userID: new TextEncoder().encode( user._id.toString() ),
+            userName: user.email,
+
+            attestationType: "none",
+
+            excludeCredentials,
+
+            authenticatorSelection: {
+                residentKey: "preferred",
+                userVerification: "preferred"
+            }
+        }
+    )
+
+    console.log( "OPTIONS:", JSON.stringify( options, null, 2 ) )
+    console.log( "CHALLENGE:", options?.challenge )
+    user.currentChallenge = options.challenge
+    await user.save( { validateBeforeSave: false } )
+
+    return res
+        .status( 200 ).
+        json(
+            new ApiRespone(
+                200,
+                { options },
+                "start registration passkey successfully"
+            )
+        )
+} )
+
+
+const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
+
+    const user = req.user
+    const { credential } = req.body
+
+    if ( !credential ) throw new ApiError( 400, "Credential Id id required" )
+
+    const verification = await verifyRegistrationResponse(
+        {
+            response: credential,
+            expectedChallenge: user.currentChallenge,
+            expectedOrigin: "http://localhost:5173",
+            expectedRPID: "localhost",
+            requireUserVerification: true
+        }
+    )
+
+    if ( !verification.verified ) throw new ApiError( 400, "Passkey verification fail" )
+
+    const { credential: cred } = verification.registrationInfo
+
+    user.passkeys.push( {
+        credentialID: cred.id,
+        publicKey: Buffer.from( cred.publicKey ).toString( "base64url" ),
+        counter: cred.counter,
+        deviceName: "User Device",
+        transports: credential.response.transports || []
+    } )
+
+    user.currentChallenge = undefined
+    await user.save( { validateBeforeSave: false } )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "Passkey verify successfully"
+            )
+        )
+} )
+
+
+const startPasskeyLogin = asyncHandler( async ( req, res ) => {
+
+    const { email } = req.body
+
+    if ( !email ) throw new ApiError( 400, "Email is required" )
+
+    const user = await User.findOne( { email: email.toLowerCase() } )
+
+    if ( !user || user.passkeys.length === 0 ) {
+        throw new ApiError( 404, "No passkey registered" )
+    }
+
+    const allowCredentials = user.passkeys.map( pk => ( {
+        id: pk.credentialID,
+        type: "public-key"
+    } ) )
+
+    const options = await generateAuthenticationOptions(
+        {
+            rpID: "localhost",
+            allowCredentials,
+            userVerification: "required"
+        }
+    )
+
+    user.currentChallenge = options.challenge
+    await user.save( { validateBeforeSave: false } )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                { options },
+                "login passkey genrate successfully"
+            )
+        )
+} )
+
+
+const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
+
+    const { email, credential } = req.body
+
+    const user = await User.findOne( { email: email.toLowerCase() } )
+
+
+    if ( !user ) throw new ApiError( 404, "Invalid credential" )
+
+    if ( !user.currentChallenge ) {
+        throw new ApiError( 400, "No login challenge found" )
+    }
+
+
+    const passkey = user.passkeys.find(
+        pk => pk.credentialID === credential.id
+    )
+
+    if ( !passkey ) throw new ApiError( 400, "Passkey not registered" )
+
+    const verification = await verifyAuthenticationResponse( {
+        response: credential,
+        expectedChallenge: user.currentChallenge,
+        expectedOrigin: "http://localhost:5173",
+        expectedRPID: "localhost",
+        credential: {
+            id: passkey.credentialID,
+            publicKey: Buffer.from( passkey.publicKey, "base64url" ),
+            counter: passkey.counter,
+            transports: passkey.transports
+        }
+    } )
+
+    if ( !verification.verified )
+        throw new ApiError( 400, "Passkey login failed" )
+
+    passkey.counter = verification.authenticationInfo.newCounter
+    user.currentChallenge = undefined
+
+    const accessToken = await user.generateAccessToken()
+    const refreshToken = await user.generateRefreshToken()
+
+    user.refreshToken = refreshToken
+    await user.save( { validateBeforeSave: false } )
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+
+    const safeUser = await User.findById( user._id )
+        .select( "-password -refreshToken" )
+
+    return res
+        .cookie( "accessToken", accessToken, cookieOptions )
+        .cookie( "refreshToken", refreshToken, cookieOptions )
+        .json( new ApiRespone(
+            200,
+            { user: safeUser },
+            "Passkey login success"
+        ) )
+} )
+
+
+
 export {
     signup,
     signin,
@@ -607,5 +810,9 @@ export {
     verifyAndEnable2FA,
     verify2FALogin,
     sendOtpEmail,
-    verifyEmailOtp
+    verifyEmailOtp,
+    startPasskeyRegistration,
+    verifyPasskeyRegistration,
+    startPasskeyLogin,
+    verifyPasskeyLogin
 }

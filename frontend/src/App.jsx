@@ -1,46 +1,57 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import CodeArenaImproved from './pages/home';
-import SignUp from './pages/signup';
-import SignIn from './pages/signin';
-import Profile from './pages/profile';
-import Skills from './pages/skill';
-export const API = "http://localhost:1600/api/v1"
+import { Routes, Route, Navigate } from "react-router-dom"
+import Signup from "./pages/signup"
+import Login from "./pages/Login"
+import SendOtp from "./pages/SendOtp"
+import VerifyEmail from "./pages/verifyEmail"
+import VerifyOtp from "./pages/VerifyOtp"
+import ResetPassword from "./pages/ResetPassword"
+import TwoFASetup from "./pages/TwoFASetup"
+import TwoFALogin from "./pages/TwoFALogin"
+import Profile from "./pages/profile"
+import ProtectedRoute from "./components/ProtectedRoute"
+import { AuthProvider } from "./context/AuthContext"
 
-// ✅ wrappers yahin hone chahiye
-function ProtectedRoute({ children }) {
-  const isAuthenticated = localStorage.getItem('user') !== null;
-  return isAuthenticated ? children : <Navigate to="/signin" replace />;
-}
-
-function PublicRoute({ children }) {
-  const isAuthenticated = localStorage.getItem('user') !== null;
-  return isAuthenticated ? <Navigate to="/profile" replace /> : children;
-}
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<CodeArenaImproved />} />
+    <AuthProvider>
+      <Routes>
+        {/* Public routes */ }
+        <Route path="/signup" element={ <Signup /> } />
+        <Route path="/login" element={ <Login /> } />
+        <Route path="/send-otp" element={ <SendOtp /> } />
+        <Route path="/verify-email" element={ <VerifyEmail /> } />
+        <Route path="/verify-otp" element={ <VerifyOtp /> } />
+        <Route path="/reset-password" element={ <ResetPassword /> } />
+        <Route path="/2fa-login" element={ <TwoFALogin /> } />
 
-      <Route path="/signup" element={
-        <PublicRoute><SignUp /></PublicRoute>
-      } />
+        {/* Alias routes for convenience */ }
+        <Route path="/forgot-password" element={ <Navigate to="/send-otp?type=forgot" replace /> } />
 
-      <Route path="/signin" element={
-        <PublicRoute><SignIn /></PublicRoute>
-      } />
+        {/* Protected routes */ }
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/setup-2fa"
+          element={
+            <ProtectedRoute>
+              <TwoFASetup />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route path="/profile" element={
-        <ProtectedRoute><Profile /></ProtectedRoute>
-      } />
-
-      <Route path="/skills" element={
-        <ProtectedRoute><Skills /></ProtectedRoute>
-      } />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
+        {/* Default redirect */ }
+        <Route path="/" element={ <Navigate to="/login" replace /> } />
+        <Route path="*" element={ <Navigate to="/login" replace /> } />
+      </Routes>
+    </AuthProvider>
+  )
 }
 
-export default App;
+export default App
