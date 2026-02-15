@@ -25,18 +25,19 @@ API.interceptors.response.use(
     if ( error.response?.status === 401 && !original._retry ) {
       original._retry = true
       try {
-        const res = await axios.post(
-          "http://localhost:15000/api/v1/auth/refresh-token",
-          {},
-          { withCredentials: true }
+        // 🛑 FIX: Yahan localhost hatao aur axios instance use karo
+        const res = await API.post(
+          "/auth/refresh-token", // baseURL use hoga
+          {}
         )
+
         const newToken = res.data.data.accessToken
         localStorage.setItem( "accessToken", newToken )
         original.headers.Authorization = `Bearer ${ newToken }`
         return API( original )
       } catch ( err ) {
         localStorage.removeItem( "accessToken" )
-        window.location.href = "/login"
+        // window.location.href = "/login" // Loop todne ke liye zaruri
         return Promise.reject( err )
       }
     }
