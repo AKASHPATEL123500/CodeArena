@@ -1,10 +1,9 @@
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import API from "../utils/api"
 
 const Signup = () => {
   const navigate = useNavigate()
-  const fileInputRef = useRef( null )
 
   const [ form, setForm ] = useState( {
     name: "",
@@ -32,25 +31,16 @@ const Signup = () => {
     }
   }
 
-  // Mobile pe label->htmlFor chain kaam nahi karta
-  // useRef se directly input.click() trigger karo
-  const triggerFilePicker = () => {
-    fileInputRef.current?.click()
-  }
-
   const validate = () => {
     const trimName = form.name.trim()
     const trimUsername = form.username.trim()
-
     if ( trimName.length < 2 || trimName.length > 50 )
       return "Name must be between 2-50 characters"
     if ( trimUsername.length < 5 || trimUsername.length > 20 )
       return "Username must be between 5-20 characters"
     if ( form.password.length < 8 )
       return "Password must be at least 8 characters"
-
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/
     if ( !passwordRegex.test( form.password ) )
       return "Password must contain uppercase, lowercase, number and special character"
     if ( !avatar ) return "Avatar is required"
@@ -88,109 +78,127 @@ const Signup = () => {
   }
 
   return (
-    <div style={ styles.container }>
-      <div style={ styles.card }>
-        <h2 style={ styles.title }>Create Account</h2>
-        <p style={ styles.subtitle }>Join CodeArena today</p>
+    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-5 font-sans">
+      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-8 w-full max-w-lg">
 
-        { error && <div style={ styles.error }>{ error }</div> }
-        { success && <div style={ styles.success }>{ success }</div> }
+        <h2 className="text-white text-2xl font-bold m-0">Create Account</h2>
+        <p className="text-[#888] text-sm mt-1 mb-6">Join CodeArena today</p>
 
-        {/* Avatar Upload */ }
-        <div style={ styles.avatarSection }>
+        { error && (
+          <div className="bg-[#2d1b1b] border border-[#c0392b] text-[#e74c3c] px-4 py-3 rounded-lg mb-4 text-sm">
+            { error }
+          </div>
+        ) }
+        { success && (
+          <div className="bg-[#1b2d1b] border border-[#27ae60] text-[#2ecc71] px-4 py-3 rounded-lg mb-4 text-sm">
+            { success }
+          </div>
+        ) }
 
-          {/* Input hidden — ref se trigger hoga, mobile pe bhi kaam karega */ }
-          <input
-            ref={ fileInputRef }
-            type="file"
-            accept="image/*"
-            onChange={ handleAvatarChange }
-            style={ { display: "none" } }
-          />
+        {/* Avatar Upload
+            KEY FIX: input ko display:none mat karo
+            Instead: absolute position + opacity-0 + inset-0
+            Ye mobile pe bhi perfectly kaam karta hai
+            Input poore circle pe overlay hai — touch anywhere = file picker opens
+        */}
+        <div className="flex justify-center mb-6">
+          <div className="relative w-24 h-24 rounded-full cursor-pointer">
 
-          {/* onClick se ref.click() — label/htmlFor se zyada reliable */ }
-          <div
-            onClick={ triggerFilePicker }
-            style={ styles.avatarWrapper }
-            role="button"
-            tabIndex={ 0 }
-            onKeyDown={ ( e ) => e.key === "Enter" && triggerFilePicker() }
-          >
+            {/* Visual layer — jo user dekhta hai */ }
             { avatarPreview ? (
-              <>
-                <img src={ avatarPreview } alt="Avatar" style={ styles.avatarImg } />
-                <div style={ styles.changeOverlay }>Change</div>
-              </>
+              <img
+                src={ avatarPreview }
+                alt="Avatar"
+                className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
+              />
             ) : (
-              <div style={ styles.avatarPlaceholder }>
-                <span style={ { fontSize: 32 } }>📷</span>
-                <p style={ { margin: "6px 0 0", fontSize: 12, color: "#888" } }>
-                  Tap to Upload
-                </p>
+              <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
+                <span className="text-3xl">📷</span>
+                <p className="text-[#888] text-xs mt-1">Tap to Upload</p>
               </div>
             ) }
+
+            {/* Change label — image select hone ke baad dikhao */ }
+            { avatarPreview && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-1 rounded-b-full">
+                Change
+              </div>
+            ) }
+
+            {/* 
+              ACTUAL INPUT — opacity 0 but fully covering the circle
+              Mobile pe ye sahi tarika hai file picker trigger karne ka
+              display:none ya visibility:hidden use mat karo — mobile block karta hai
+            */}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={ handleAvatarChange }
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 rounded-full"
+            />
           </div>
         </div>
 
         <form onSubmit={ handleSubmit }>
-          <div style={ styles.row }>
-            <div style={ styles.field }>
-              <label style={ styles.label }>Full Name</label>
+          {/* Name + Username row */ }
+          <div className="flex gap-3 mb-0">
+            <div className="flex-1 mb-4">
+              <label className="block text-[#aaa] text-xs mb-1.5">Full Name</label>
               <input
                 name="name"
                 value={ form.name }
                 onChange={ handleChange }
                 placeholder="John Doe"
-                style={ styles.input }
+                className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
                 required
               />
             </div>
-            <div style={ styles.field }>
-              <label style={ styles.label }>Username</label>
+            <div className="flex-1 mb-4">
+              <label className="block text-[#aaa] text-xs mb-1.5">Username</label>
               <input
                 name="username"
                 value={ form.username }
                 onChange={ handleChange }
                 placeholder="johndoe123"
-                style={ styles.input }
+                className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
                 required
               />
             </div>
           </div>
 
-          <div style={ styles.field }>
-            <label style={ styles.label }>Email</label>
+          <div className="mb-4">
+            <label className="block text-[#aaa] text-xs mb-1.5">Email</label>
             <input
               name="email"
               type="email"
               value={ form.email }
               onChange={ handleChange }
               placeholder="john@example.com"
-              style={ styles.input }
+              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
               required
             />
           </div>
 
-          <div style={ styles.field }>
-            <label style={ styles.label }>Password</label>
+          <div className="mb-4">
+            <label className="block text-[#aaa] text-xs mb-1.5">Password</label>
             <input
               name="password"
               type="password"
               value={ form.password }
               onChange={ handleChange }
               placeholder="Min 8 chars, A-Z, 0-9, @$!%*?&#"
-              style={ styles.input }
+              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
               required
             />
           </div>
 
-          <div style={ styles.field }>
-            <label style={ styles.label }>Role</label>
+          <div className="mb-5">
+            <label className="block text-[#aaa] text-xs mb-1.5">Role</label>
             <select
               name="role"
               value={ form.role }
               onChange={ handleChange }
-              style={ styles.input }
+              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
             >
               <option value="student">Student</option>
               <option value="startup">Startup</option>
@@ -198,129 +206,24 @@ const Signup = () => {
             </select>
           </div>
 
-          <button type="submit" disabled={ loading } style={ styles.btn }>
+          <button
+            type="submit"
+            disabled={ loading }
+            className="w-full py-3 bg-[#4ade80] text-black font-bold rounded-lg text-sm cursor-pointer disabled:opacity-60"
+          >
             { loading ? "Creating Account..." : "Sign Up" }
           </button>
         </form>
 
-        <p style={ styles.link }>
+        <p className="text-center text-[#888] text-sm mt-5">
           Already have an account?{ " " }
-          <Link to="/login" style={ styles.linkText }>Sign In</Link>
+          <Link to="/login" className="text-[#4ade80] font-semibold no-underline">
+            Sign In
+          </Link>
         </p>
       </div>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "#0f0f0f",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-    fontFamily: "'Segoe UI', sans-serif",
-  },
-  card: {
-    background: "#1a1a1a",
-    border: "1px solid #2a2a2a",
-    borderRadius: 12,
-    padding: "40px 36px",
-    width: "100%",
-    maxWidth: 480,
-  },
-  title: { color: "#fff", margin: 0, fontSize: 26, fontWeight: 700 },
-  subtitle: { color: "#888", margin: "6px 0 24px", fontSize: 14 },
-  error: {
-    background: "#2d1b1b",
-    border: "1px solid #c0392b",
-    color: "#e74c3c",
-    padding: "10px 14px",
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 13,
-  },
-  success: {
-    background: "#1b2d1b",
-    border: "1px solid #27ae60",
-    color: "#2ecc71",
-    padding: "10px 14px",
-    borderRadius: 8,
-    marginBottom: 16,
-    fontSize: 13,
-  },
-  avatarSection: {
-    display: "flex",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  avatarWrapper: {
-    position: "relative",
-    width: 90,
-    height: 90,
-    borderRadius: "50%",
-    cursor: "pointer",
-    overflow: "hidden",
-    WebkitTapHighlightColor: "transparent",
-    userSelect: "none",
-  },
-  avatarImg: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block",
-  },
-  changeOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    background: "rgba(0,0,0,0.55)",
-    color: "#fff",
-    fontSize: 11,
-    textAlign: "center",
-    padding: "5px 0",
-  },
-  avatarPlaceholder: {
-    width: "100%",
-    height: "100%",
-    background: "#2a2a2a",
-    border: "2px dashed #555",
-    borderRadius: "50%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  row: { display: "flex", gap: 12 },
-  field: { flex: 1, marginBottom: 16 },
-  label: { display: "block", color: "#aaa", fontSize: 13, marginBottom: 6 },
-  input: {
-    width: "100%",
-    boxSizing: "border-box",
-    background: "#111",
-    border: "1px solid #333",
-    borderRadius: 8,
-    padding: "10px 12px",
-    color: "#fff",
-    fontSize: 14,
-    outline: "none",
-  },
-  btn: {
-    width: "100%",
-    padding: "12px",
-    background: "#4ade80",
-    color: "#000",
-    border: "none",
-    borderRadius: 8,
-    fontSize: 15,
-    fontWeight: 700,
-    cursor: "pointer",
-    marginTop: 8,
-  },
-  link: { textAlign: "center", color: "#888", fontSize: 13, marginTop: 20 },
-  linkText: { color: "#4ade80", textDecoration: "none", fontWeight: 600 },
 }
 
 export default Signup
