@@ -1,9 +1,11 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import API from "../utils/api"
 
 const Signup = () => {
   const navigate = useNavigate()
+  const fileInputRef = useRef( null )
+
   const [ form, setForm ] = useState( {
     name: "",
     username: "",
@@ -28,6 +30,12 @@ const Signup = () => {
       setAvatar( file )
       setAvatarPreview( URL.createObjectURL( file ) )
     }
+  }
+
+  // Mobile pe label->htmlFor chain kaam nahi karta
+  // useRef se directly input.click() trigger karo
+  const triggerFilePicker = () => {
+    fileInputRef.current?.click()
   }
 
   const validate = () => {
@@ -68,7 +76,10 @@ const Signup = () => {
         headers: { "Content-Type": "multipart/form-data" },
       } )
       setSuccess( "Signup successful! Please verify your email." )
-      setTimeout( () => navigate( "/send-otp?type=verify&email=" + encodeURIComponent( form.email ) ), 1500 )
+      setTimeout(
+        () => navigate( "/send-otp?type=verify&email=" + encodeURIComponent( form.email ) ),
+        1500
+      )
     } catch ( err ) {
       setError( err.response?.data?.message || "Signup failed" )
     } finally {
@@ -85,25 +96,40 @@ const Signup = () => {
         { error && <div style={ styles.error }>{ error }</div> }
         { success && <div style={ styles.success }>{ success }</div> }
 
-        {/* Avatar Preview */ }
+        {/* Avatar Upload */ }
         <div style={ styles.avatarSection }>
-          <label htmlFor="avatar" style={ styles.avatarLabel }>
-            { avatarPreview ? (
-              <img src={ avatarPreview } alt="Avatar" style={ styles.avatarImg } />
-            ) : (
-              <div style={ styles.avatarPlaceholder }>
-                <span style={ { fontSize: 32 } }>📷</span>
-                <p style={ { margin: "4px 0 0", fontSize: 12, color: "#888" } }>Upload Avatar</p>
-              </div>
-            ) }
-          </label>
+
+          {/* Input hidden — ref se trigger hoga, mobile pe bhi kaam karega */ }
           <input
-            id="avatar"
+            ref={ fileInputRef }
             type="file"
             accept="image/*"
             onChange={ handleAvatarChange }
             style={ { display: "none" } }
           />
+
+          {/* onClick se ref.click() — label/htmlFor se zyada reliable */ }
+          <div
+            onClick={ triggerFilePicker }
+            style={ styles.avatarWrapper }
+            role="button"
+            tabIndex={ 0 }
+            onKeyDown={ ( e ) => e.key === "Enter" && triggerFilePicker() }
+          >
+            { avatarPreview ? (
+              <>
+                <img src={ avatarPreview } alt="Avatar" style={ styles.avatarImg } />
+                <div style={ styles.changeOverlay }>Change</div>
+              </>
+            ) : (
+              <div style={ styles.avatarPlaceholder }>
+                <span style={ { fontSize: 32 } }>📷</span>
+                <p style={ { margin: "6px 0 0", fontSize: 12, color: "#888" } }>
+                  Tap to Upload
+                </p>
+              </div>
+            ) }
+          </div>
         </div>
 
         <form onSubmit={ handleSubmit }>
@@ -224,33 +250,74 @@ const styles = {
     marginBottom: 16,
     fontSize: 13,
   },
-  avatarSection: { display: "flex", justifyContent: "center", marginBottom: 24 },
-  avatarLabel: { cursor: "pointer" },
+  avatarSection: {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  avatarWrapper: {
+    position: "relative",
+    width: 90,
+    height: 90,
+    borderRadius: "50%",
+    cursor: "pointer",
+    overflow: "hidden",
+    WebkitTapHighlightColor: "transparent",
+    userSelect: "none",
+  },
   avatarImg: {
-    width: 80, height: 80, borderRadius: "50%",
-    objectFit: "cover", border: "3px solid #4ade80",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+  },
+  changeOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: "rgba(0,0,0,0.55)",
+    color: "#fff",
+    fontSize: 11,
+    textAlign: "center",
+    padding: "5px 0",
   },
   avatarPlaceholder: {
-    width: 80, height: 80, borderRadius: "50%",
-    background: "#2a2a2a", border: "2px dashed #444",
-    display: "flex", flexDirection: "column",
-    alignItems: "center", justifyContent: "center",
+    width: "100%",
+    height: "100%",
+    background: "#2a2a2a",
+    border: "2px dashed #555",
+    borderRadius: "50%",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
   },
   row: { display: "flex", gap: 12 },
   field: { flex: 1, marginBottom: 16 },
   label: { display: "block", color: "#aaa", fontSize: 13, marginBottom: 6 },
   input: {
-    width: "100%", boxSizing: "border-box",
-    background: "#111", border: "1px solid #333",
-    borderRadius: 8, padding: "10px 12px",
-    color: "#fff", fontSize: 14, outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
+    background: "#111",
+    border: "1px solid #333",
+    borderRadius: 8,
+    padding: "10px 12px",
+    color: "#fff",
+    fontSize: 14,
+    outline: "none",
   },
   btn: {
-    width: "100%", padding: "12px",
-    background: "#4ade80", color: "#000",
-    border: "none", borderRadius: 8,
-    fontSize: 15, fontWeight: 700,
-    cursor: "pointer", marginTop: 8,
+    width: "100%",
+    padding: "12px",
+    background: "#4ade80",
+    color: "#000",
+    border: "none",
+    borderRadius: 8,
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer",
+    marginTop: 8,
   },
   link: { textAlign: "center", color: "#888", fontSize: 13, marginTop: 20 },
   linkText: { color: "#4ade80", textDecoration: "none", fontWeight: 600 },
