@@ -1,54 +1,118 @@
-# ✅ Final Auth Security Checklist
+# ✅ Final Authentication Security Checklist
+
 # 🔐 Login Security
 
-✅ Password hashed (bcrypt)
+Password hashing using bcrypt
 
-✅ Login attempt limit
+Login attempt limiting (brute-force protection)
 
-✅ Account lock system
+Account lock mechanism after multiple failures
 
-✅ Timing attack prevention (dummy hash compare)
+Timing attack prevention (dummy hash comparison)
 
-✅ Trim + lowercase email validation
+Email normalization (trim + lowercase validation)
 
-# 🎟 Token Security
+# 🎟 Token & Session Security
 
-✅ Access token + refresh token
+Access token + Refresh token architecture
 
-✅ Refresh token DB me stored
+Refresh tokens securely stored in database
 
-✅ httpOnly cookies
+Tokens delivered via httpOnly cookies
 
-✅ secure + sameSite cookies
+Cookies configured with:
 
-✅ Token expiry set
+secure
 
-📧 Account Safety
+sameSite
 
-✅ Email verify system
+Token expiration and rotation handled correctly
 
-✅ OTP password reset
+# 📧 Account Safety & Recovery
 
-✅ OTP expiry + attempt limit
+Email verification flow
 
-# 🔑 2FA
+OTP-based password reset
 
-✅ 2FA secret generate
+OTP expiration handling
 
-✅ QR based setup
+OTP attempt limits to prevent abuse
 
-✅ Token verify
+# 🔑 Two-Factor Authentication (2FA)
 
-✅ Login me 2FA check
+2FA secret generation
 
-# 🛡 Middleware & Infra
+QR-code based authenticator setup
 
-✅ Auth middleware
+OTP verification for 2FA
 
-✅ Role middleware
+Enforced 2FA check during login flow
 
-✅ Helmet / CORS
+# 🔐 Passkey Authentication (WebAuthn)
 
-✅ Input validation
+Passkey registration flow
 
-✅ Sensitive fields hidden (-password -refreshToken)
+Passkey login flow
+
+Passwordless authentication support
+
+Phishing-resistant authentication mechanism
+
+# 🛡 Middleware & Infrastructure Security
+
+Authentication middleware
+
+Role-based authorization middleware
+
+Security headers using Helmet
+
+Proper CORS configuration
+
+Input validation on all critical endpoints
+
+Sensitive fields excluded from responses:
+
+password
+
+refreshToken
+
+# 🧠 Design Philosophy
+
+Security is not optional
+
+Authentication is treated as infrastructure, not a feature
+
+Every flow is designed for real-world production use
+
+Future-ready with Passkeys & WebAuthn
+
+# 🚀 Tech Stack
+
+Node.js
+
+Express.js
+
+MongoDB
+
+JWT
+
+bcrypt
+
+WebAuthn (Passkeys)
+
+OTP / 2FA
+
+# 📌 Ideal Use Cases
+
+SaaS products
+
+Startup backends
+
+Enterprise authentication services
+
+Security-first applications
+
+# ⚠️ Disclaimer
+
+This project focuses on authentication & security logic.
+Frontend and UI implementation are intentionally excluded.
