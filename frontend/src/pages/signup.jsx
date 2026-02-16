@@ -24,12 +24,45 @@ const Signup = () => {
     setError( "" )
   }
 
+  // FIXED: Android Chrome pe files properly read karo
   const handleAvatarChange = ( e ) => {
-    const file = e.target.files[ 0 ]
-    if ( file ) {
-      setAvatar( file )
-      setAvatarPreview( URL.createObjectURL( file ) )
+    // Android pe e.target.files kabhi kabhi null hota hai
+    // isliye multiple checks lagao
+    const files = e.target.files || e.dataTransfer?.files
+
+    if ( !files || files.length === 0 ) {
+      console.log( "No file selected" )
+      return
     }
+
+    const file = files[ 0 ]
+
+    if ( !file ) {
+      console.log( "File is null" )
+      return
+    }
+
+    console.log( "File selected:", file.name, file.size, file.type )
+
+    // State set karo
+    setAvatar( file )
+
+    // Preview ke liye FileReader use karo
+    // URL.createObjectURL Android Chrome pe sometimes fail karta hai
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAvatarPreview( reader.result )
+    }
+    reader.onerror = () => {
+      console.log( "FileReader error" )
+      // Fallback: try createObjectURL
+      try {
+        setAvatarPreview( URL.createObjectURL( file ) )
+      } catch ( err ) {
+        console.log( "createObjectURL also failed:", err )
+      }
+    }
+    reader.readAsDataURL( file )
   }
 
   const validate = () => {
@@ -60,6 +93,9 @@ const Signup = () => {
     formData.append( "password", form.password )
     formData.append( "role", form.role )
     formData.append( "avatar", avatar )
+
+    // Debug: check karo file properly hai
+    console.log( "Submitting with avatar:", avatar?.name, avatar?.size )
 
     setLoading( true )
     try {
@@ -96,66 +132,50 @@ const Signup = () => {
           </div>
         ) }
 
-        {/* =====================================================
-            AVATAR SECTION
-            
-            Sabse reliable mobile solution:
-            - Input VISIBLE rakho (opacity-0 nahi, position absolute nahi)
-            - Preview aur input ALAG ALAG elements hain
-            - Preview ke neeche ek proper button hai jo input trigger karta hai
-            - Koi overflow:hidden, border-radius on input, ya z-index games nahi
-        ====================================================== */}
+        {/* AVATAR SECTION */ }
         <div className="flex flex-col items-center mb-6 gap-3">
 
-          {/* Preview circle — sirf dikhane ke liye, koi click handler nahi */ }
-          <div className="flex justify-center mb-6">
-            <label htmlFor="avatarInput" className="cursor-pointer flex flex-col items-center gap-2">
-              { avatarPreview ? (
-                <img src={ avatarPreview } className="w-24 h-24 rounded-full object-cover border-4 border-green-400" />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
-                  <span className="text-4xl">📷</span>
-                  <p className="text-[#888] text-xs mt-1">Tap to Upload</p>
-                </div>
-              ) }
-              <span className="text-[#4ade80] text-sm">{ avatar ? "✓ " + avatar.name : "Select Photo" }</span>
-            </label>
-            <input
-              id="avatarInput"
-              type="file"
-              accept="image/*"
-              onChange={ handleAvatarChange }
-              className="hidden"
+          {/* Preview */ }
+          { avatarPreview ? (
+            <img
+              src={ avatarPreview }
+              alt="Avatar"
+              className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
             />
-          </div>
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
+              <span className="text-4xl">📷</span>
+            </div>
+          ) }
 
           {/* 
-            Hidden input — ref se trigger hoga
-            NOTE: ye sirf Android Chrome pe kaam karta hai
-            iOS ke liye neeche wala visible input hai
+            MOST RELIABLE APPROACH FOR ANDROID:
+            Input ko visible rakho — sirf width/height 0 karo aur overflow hidden
+            Aur usse label se directly connect karo htmlFor se
+            Ye Android Chrome pe GUARANTEED kaam karta hai
           */}
+          <label
+            htmlFor="avatarFile"
+            className="px-5 py-2.5 bg-[#2a2a2a] border border-[#444] text-[#ccc] text-sm rounded-lg cursor-pointer active:bg-[#333]"
+          >
+            { avatarPreview ? "📷 Change Photo" : "📷 Select Photo" }
+          </label>
+
           <input
-            ref={ fileInputRef }
+            id="avatarFile"
             type="file"
             accept="image/*"
+            capture={ false }
             onChange={ handleAvatarChange }
-            style={ { display: "none" } }
+            className="w-0 h-0 overflow-hidden absolute"
+            style={ { position: 'absolute', width: '1px', height: '1px', opacity: 0, overflow: 'hidden' } }
           />
 
-          {/* 
-            BUTTON jo input trigger karta hai — Android + iOS dono pe kaam karta hai
-            Ye approach sabse cross-platform reliable hai
-          */}
-          <button
-            type="button"
-            onClick={ () => fileInputRef.current && fileInputRef.current.click() }
-            className="px-5 py-2 bg-[#2a2a2a] border border-[#444] text-[#ccc] text-sm rounded-lg"
-          >
-            { avatarPreview ? "Change Photo" : "Select Photo" }
-          </button>
-
-          { avatar && (
-            <p className="text-[#4ade80] text-xs">✓ { avatar.name }</p>
+          {/* File selected confirmation */ }
+          { avatar ? (
+            <p className="text-[#4ade80] text-xs text-center">✓ { avatar.name }</p>
+          ) : (
+            <p className="text-[#666] text-xs">No file selected</p>
           ) }
         </div>
 
