@@ -108,17 +108,26 @@ const Signup = () => {
         <div className="flex flex-col items-center mb-6 gap-3">
 
           {/* Preview circle — sirf dikhane ke liye, koi click handler nahi */ }
-          { avatarPreview ? (
-            <img
-              src={ avatarPreview }
-              alt="Avatar preview"
-              className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
+          <div className="flex justify-center mb-6">
+            <label htmlFor="avatarInput" className="cursor-pointer flex flex-col items-center gap-2">
+              { avatarPreview ? (
+                <img src={ avatarPreview } className="w-24 h-24 rounded-full object-cover border-4 border-green-400" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
+                  <span className="text-4xl">📷</span>
+                  <p className="text-[#888] text-xs mt-1">Tap to Upload</p>
+                </div>
+              ) }
+              <span className="text-[#4ade80] text-sm">{ avatar ? "✓ " + avatar.name : "Select Photo" }</span>
+            </label>
+            <input
+              id="avatarInput"
+              type="file"
+              accept="image/*"
+              onChange={ handleAvatarChange }
+              className="hidden"
             />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
-              <span className="text-4xl">📷</span>
-            </div>
-          ) }
+          </div>
 
           {/* 
             Hidden input — ref se trigger hoga
