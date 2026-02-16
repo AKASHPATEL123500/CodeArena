@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 import { sendMail } from "../utils/sendMail.js";
 import { genrateOtp } from "../utils/otp.js";
 import QRCode from "qrcode"
-import speakeasy, { counter } from "speakeasy"
+import speakeasy from "speakeasy"
 import { otpTemplate } from "../utils/emailTemplates.js";
 import { generateRegistrationOptions } from "@simplewebauthn/server"
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
@@ -312,6 +312,7 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 } )
 
 
+// emila verifictaion system
 const sendOtpEmail = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -349,7 +350,7 @@ const sendOtpEmail = asyncHandler( async ( req, res ) => {
 } )
 
 
-
+// email OTP verify 
 const verifyEmailOtp = asyncHandler( async ( req, res ) => {
 
     const { email, otp } = req.body
@@ -381,6 +382,7 @@ const verifyEmailOtp = asyncHandler( async ( req, res ) => {
 } )
 
 
+// Forget passwrod system with send otp on email
 const forgetPassword = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -411,7 +413,8 @@ const forgetPassword = asyncHandler( async ( req, res ) => {
         {
             to: email,
             subject: "Password reset otp",
-            text: `Your otp is${ otp }`
+            text: '',
+            html: otpTemplate( otp, user.name )
         }
     )
 
@@ -498,7 +501,7 @@ const resetPassword = asyncHandler( async ( req, res ) => {
 
 const genrate2FASecret = asyncHandler( async ( req, res ) => {
 
-    const user = req.user
+    const user = await User.findById( req.user._id )
 
     const secret = speakeasy.generateSecret(
         {
@@ -507,7 +510,7 @@ const genrate2FASecret = asyncHandler( async ( req, res ) => {
     )
 
     user.twoFactorSecret = secret.base32
-    await user.save()
+    await user.save( { validateBeforeSave: false } )
 
     const qr = await QRCode.toDataURL( secret.otpauth_url )
 
@@ -529,13 +532,14 @@ const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
 
     const { token } = req.body
 
-    const user = req.user
+    const user = await User.findById( req.user._id )
 
     const verify = speakeasy.totp.verify(
         {
             secret: user.twoFactorSecret,
             encoding: "base32",
-            token
+            token: token.toString(),
+            window: 2
         }
     )
 
@@ -571,14 +575,15 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
     const ok = speakeasy.totp.verify( {
         secret: user.twoFactorSecret,
         encoding: "base32",
-        token
+        token: token.toString(),
+        window: 2
     } )
 
     if ( !ok ) throw new ApiError( 400, "Wrong 2FA Code" )
 
     // ✅ ISSUE TOKENS HERE
-    const accessToken = user.generateAccessToken()
-    const refreshToken = user.generateRefreshToken()
+    const accessToken = await user.generateAccessToken()
+    const refreshToken = await user.generateRefreshToken()
 
     user.refreshToken = refreshToken
     user.lastLogin = Date.now()
