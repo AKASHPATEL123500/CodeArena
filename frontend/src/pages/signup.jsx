@@ -133,9 +133,9 @@ const Signup = () => {
         ) }
 
         {/* AVATAR SECTION */ }
+        {/* AVATAR SECTION — MOBILE SAFE */ }
         <div className="flex flex-col items-center mb-6 gap-3">
 
-          {/* Preview */ }
           { avatarPreview ? (
             <img
               src={ avatarPreview }
@@ -143,40 +143,25 @@ const Signup = () => {
               className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex items-center justify-center">
               <span className="text-4xl">📷</span>
             </div>
           ) }
 
-          {/* 
-            MOST RELIABLE APPROACH FOR ANDROID:
-            Input ko visible rakho — sirf width/height 0 karo aur overflow hidden
-            Aur usse label se directly connect karo htmlFor se
-            Ye Android Chrome pe GUARANTEED kaam karta hai
-          */}
-          <label
-            htmlFor="avatarFile"
-            className="px-5 py-2.5 bg-[#2a2a2a] border border-[#444] text-[#ccc] text-sm rounded-lg cursor-pointer active:bg-[#333]"
-          >
-            { avatarPreview ? "📷 Change Photo" : "📷 Select Photo" }
-          </label>
-
           <input
-            id="avatarFile"
             type="file"
             accept="image/*"
-            capture={ false }
             onChange={ handleAvatarChange }
-            className="w-0 h-0 overflow-hidden absolute"
-            style={ { position: 'absolute', width: '1px', height: '1px', opacity: 0, overflow: 'hidden' } }
+            className="text-sm text-[#ccc]
+               file:mr-4 file:py-2 file:px-4
+               file:rounded-lg file:border-0
+               file:bg-[#2a2a2a] file:text-[#ccc]"
           />
 
-          {/* File selected confirmation */ }
-          { avatar ? (
-            <p className="text-[#4ade80] text-xs text-center">✓ { avatar.name }</p>
-          ) : (
-            <p className="text-[#666] text-xs">No file selected</p>
+          { avatar && (
+            <p className="text-[#4ade80] text-xs">✓ { avatar.name }</p>
           ) }
+
         </div>
 
         <form onSubmit={ handleSubmit }>
