@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import API from "../utils/api"
 
@@ -13,8 +13,11 @@ const Signup = () => {
     password: "",
     role: "student",
   } )
-  const [ avatar, setAvatar ] = useState( null )
+
+  // avatar file alag ref mein bhi rakho — state update se independent
+  const avatarFileRef = useRef( null )
   const [ avatarPreview, setAvatarPreview ] = useState( null )
+  const [ avatarName, setAvatarName ] = useState( "" )
   const [ error, setError ] = useState( "" )
   const [ success, setSuccess ] = useState( "" )
   const [ loading, setLoading ] = useState( false )
@@ -24,49 +27,26 @@ const Signup = () => {
     setError( "" )
   }
 
-
-  // FIXED: Android Chrome pe files properly read karo
-  const handleAvatarChange = ( e ) => {
-    // Android pe e.target.files kabhi kabhi null hota hai
-    // isliye multiple checks lagao
-    alert( "onChange fired! Files: " + e.target.files?.length )  // ← ye add kar
-
-    const files = e.target.files || e.dataTransfer?.files
-
-    if ( !files || files.length === 0 ) {
-      console.log( "No file selected" )
-      return
-    }
+  const handleAvatarChange = useCallback( ( e ) => {
+    const files = e.target.files
+    if ( !files || files.length === 0 ) return
 
     const file = files[ 0 ]
+    if ( !file ) return
 
-    if ( !file ) {
-      console.log( "File is null" )
-      return
-    }
+    // File ko ref mein store karo — state se zyada reliable
+    avatarFileRef.current = file
+    setAvatarName( file.name )
 
-    console.log( "File selected:", file.name, file.size, file.type )
-
-    // State set karo
-    setAvatar( file )
-
-    // Preview ke liye FileReader use karo
-    // URL.createObjectURL Android Chrome pe sometimes fail karta hai
+    // Preview ke liye FileReader
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setAvatarPreview( reader.result )
-    }
-    reader.onerror = () => {
-      console.log( "FileReader error" )
-      // Fallback: try createObjectURL
-      try {
-        setAvatarPreview( URL.createObjectURL( file ) )
-      } catch ( err ) {
-        console.log( "createObjectURL also failed:", err )
+    reader.onload = ( event ) => {
+      if ( event.target && event.target.result ) {
+        setAvatarPreview( event.target.result )
       }
     }
     reader.readAsDataURL( file )
-  }
+  }, [] )
 
   const validate = () => {
     const trimName = form.name.trim()
@@ -80,7 +60,8 @@ const Signup = () => {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/
     if ( !passwordRegex.test( form.password ) )
       return "Password must contain uppercase, lowercase, number and special character"
-    if ( !avatar ) return "Avatar is required"
+    // state nahi — ref check karo
+    if ( !avatarFileRef.current ) return "Avatar is required"
     return null
   }
 
@@ -95,10 +76,8 @@ const Signup = () => {
     formData.append( "email", form.email )
     formData.append( "password", form.password )
     formData.append( "role", form.role )
-    formData.append( "avatar", avatar )
-
-    // Debug: check karo file properly hai
-    console.log( "Submitting with avatar:", avatar?.name, avatar?.size )
+    // state nahi — ref se file lo
+    formData.append( "avatar", avatarFileRef.current )
 
     setLoading( true )
     try {
@@ -136,9 +115,9 @@ const Signup = () => {
         ) }
 
         {/* AVATAR SECTION */ }
-        {/* AVATAR SECTION — MOBILE SAFE */ }
         <div className="flex flex-col items-center mb-6 gap-3">
 
+          {/* Preview */ }
           { avatarPreview ? (
             <img
               src={ avatarPreview }
@@ -146,25 +125,41 @@ const Signup = () => {
               className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
               <span className="text-4xl">📷</span>
             </div>
           ) }
 
+          {/* File input - label se directly connected */ }
+          <label
+            htmlFor="avatarFile"
+            className="px-5 py-2.5 bg-[#2a2a2a] border border-[#444] text-[#ccc] text-sm rounded-lg cursor-pointer"
+          >
+            { avatarName ? "📷 Change Photo" : "📷 Select Photo" }
+          </label>
+
           <input
+            ref={ fileInputRef }
+            id="avatarFile"
             type="file"
             accept="image/*"
             onChange={ handleAvatarChange }
-            className="text-sm text-[#ccc]
-               file:mr-4 file:py-2 file:px-4
-               file:rounded-lg file:border-0
-               file:bg-[#2a2a2a] file:text-[#ccc]"
+            style={ {
+              position: "fixed",
+              top: "-1000px",
+              left: "-1000px",
+              width: "1px",
+              height: "1px",
+              opacity: 0,
+            } }
           />
 
-          { avatar && (
-            <p className="text-[#4ade80] text-xs">✓ { avatar.name }</p>
+          {/* Confirmation */ }
+          { avatarName ? (
+            <p className="text-[#4ade80] text-xs text-center">✓ { avatarName }</p>
+          ) : (
+            <p className="text-[#666] text-xs">No photo selected</p>
           ) }
-
         </div>
 
         <form onSubmit={ handleSubmit }>
