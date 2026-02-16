@@ -24,6 +24,7 @@ const Signup = () => {
     setError( "" )
   }
 
+
   // FIXED: Android Chrome pe files properly read karo
   const handleAvatarChange = ( e ) => {
     // Android pe e.target.files kabhi kabhi null hota hai

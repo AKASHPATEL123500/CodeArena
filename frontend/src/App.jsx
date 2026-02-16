@@ -10,6 +10,7 @@ import TwoFALogin from "./pages/TwoFALogin"
 import Profile from "./pages/profile"
 import ProtectedRoute from "./components/ProtectedRoute"
 import { AuthProvider } from "./context/AuthContext"
+import FileTest from "./components/fileTest"
 
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
         <Route path="/verify-otp" element={ <VerifyOtp /> } />
         <Route path="/reset-password" element={ <ResetPassword /> } />
         <Route path="/2fa-login" element={ <TwoFALogin /> } />
-
+        <Route path="/file-test" element={ <FileTest /> } />
         {/* Alias routes for convenience */ }
         <Route path="/forgot-password" element={ <Navigate to="/send-otp?type=forgot" replace /> } />
 
