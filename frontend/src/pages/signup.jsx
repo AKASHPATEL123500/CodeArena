@@ -29,6 +29,8 @@ const Signup = () => {
   const handleAvatarChange = ( e ) => {
     // Android pe e.target.files kabhi kabhi null hota hai
     // isliye multiple checks lagao
+    alert( "onChange fired! Files: " + e.target.files?.length )  // ← ye add kar
+
     const files = e.target.files || e.dataTransfer?.files
 
     if ( !files || files.length === 0 ) {
