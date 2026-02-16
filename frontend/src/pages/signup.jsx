@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import API from "../utils/api"
 
 const Signup = () => {
   const navigate = useNavigate()
+  const fileInputRef = useRef( null )
 
   const [ form, setForm ] = useState( {
     name: "",
@@ -78,7 +79,7 @@ const Signup = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-5 font-sans">
+    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-5">
       <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-8 w-full max-w-lg">
 
         <h2 className="text-white text-2xl font-bold m-0">Create Account</h2>
@@ -95,53 +96,62 @@ const Signup = () => {
           </div>
         ) }
 
-        {/* Avatar Upload
-            KEY FIX: input ko display:none mat karo
-            Instead: absolute position + opacity-0 + inset-0
-            Ye mobile pe bhi perfectly kaam karta hai
-            Input poore circle pe overlay hai — touch anywhere = file picker opens
-        */}
-        <div className="flex justify-center mb-6">
-          <div className="relative w-24 h-24 rounded-full cursor-pointer">
+        {/* =====================================================
+            AVATAR SECTION
+            
+            Sabse reliable mobile solution:
+            - Input VISIBLE rakho (opacity-0 nahi, position absolute nahi)
+            - Preview aur input ALAG ALAG elements hain
+            - Preview ke neeche ek proper button hai jo input trigger karta hai
+            - Koi overflow:hidden, border-radius on input, ya z-index games nahi
+        ====================================================== */}
+        <div className="flex flex-col items-center mb-6 gap-3">
 
-            {/* Visual layer — jo user dekhta hai */ }
-            { avatarPreview ? (
-              <img
-                src={ avatarPreview }
-                alt="Avatar"
-                className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
-                <span className="text-3xl">📷</span>
-                <p className="text-[#888] text-xs mt-1">Tap to Upload</p>
-              </div>
-            ) }
-
-            {/* Change label — image select hone ke baad dikhao */ }
-            { avatarPreview && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-1 rounded-b-full">
-                Change
-              </div>
-            ) }
-
-            {/* 
-              ACTUAL INPUT — opacity 0 but fully covering the circle
-              Mobile pe ye sahi tarika hai file picker trigger karne ka
-              display:none ya visibility:hidden use mat karo — mobile block karta hai
-            */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={ handleAvatarChange }
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 rounded-full"
+          {/* Preview circle — sirf dikhane ke liye, koi click handler nahi */ }
+          { avatarPreview ? (
+            <img
+              src={ avatarPreview }
+              alt="Avatar preview"
+              className="w-24 h-24 rounded-full object-cover border-[3px] border-[#4ade80]"
             />
-          </div>
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border-2 border-dashed border-[#555] flex flex-col items-center justify-center">
+              <span className="text-4xl">📷</span>
+            </div>
+          ) }
+
+          {/* 
+            Hidden input — ref se trigger hoga
+            NOTE: ye sirf Android Chrome pe kaam karta hai
+            iOS ke liye neeche wala visible input hai
+          */}
+          <input
+            ref={ fileInputRef }
+            type="file"
+            accept="image/*"
+            onChange={ handleAvatarChange }
+            style={ { display: "none" } }
+          />
+
+          {/* 
+            BUTTON jo input trigger karta hai — Android + iOS dono pe kaam karta hai
+            Ye approach sabse cross-platform reliable hai
+          */}
+          <button
+            type="button"
+            onClick={ () => fileInputRef.current && fileInputRef.current.click() }
+            className="px-5 py-2 bg-[#2a2a2a] border border-[#444] text-[#ccc] text-sm rounded-lg"
+          >
+            { avatarPreview ? "Change Photo" : "Select Photo" }
+          </button>
+
+          { avatar && (
+            <p className="text-[#4ade80] text-xs">✓ { avatar.name }</p>
+          ) }
         </div>
 
         <form onSubmit={ handleSubmit }>
-          {/* Name + Username row */ }
-          <div className="flex gap-3 mb-0">
+          <div className="flex gap-3">
             <div className="flex-1 mb-4">
               <label className="block text-[#aaa] text-xs mb-1.5">Full Name</label>
               <input
@@ -149,7 +159,7 @@ const Signup = () => {
                 value={ form.name }
                 onChange={ handleChange }
                 placeholder="John Doe"
-                className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
+                className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none"
                 required
               />
             </div>
@@ -160,7 +170,7 @@ const Signup = () => {
                 value={ form.username }
                 onChange={ handleChange }
                 placeholder="johndoe123"
-                className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
+                className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none"
                 required
               />
             </div>
@@ -174,7 +184,7 @@ const Signup = () => {
               value={ form.email }
               onChange={ handleChange }
               placeholder="john@example.com"
-              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
+              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none"
               required
             />
           </div>
@@ -187,18 +197,18 @@ const Signup = () => {
               value={ form.password }
               onChange={ handleChange }
               placeholder="Min 8 chars, A-Z, 0-9, @$!%*?&#"
-              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
+              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none"
               required
             />
           </div>
 
-          <div className="mb-5">
+          <div className="mb-6">
             <label className="block text-[#aaa] text-xs mb-1.5">Role</label>
             <select
               name="role"
               value={ form.role }
               onChange={ handleChange }
-              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#4ade80]"
+              className="w-full bg-[#111] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none"
             >
               <option value="student">Student</option>
               <option value="startup">Startup</option>
@@ -209,7 +219,7 @@ const Signup = () => {
           <button
             type="submit"
             disabled={ loading }
-            className="w-full py-3 bg-[#4ade80] text-black font-bold rounded-lg text-sm cursor-pointer disabled:opacity-60"
+            className="w-full py-3 bg-[#4ade80] text-black font-bold rounded-lg text-sm disabled:opacity-60"
           >
             { loading ? "Creating Account..." : "Sign Up" }
           </button>
