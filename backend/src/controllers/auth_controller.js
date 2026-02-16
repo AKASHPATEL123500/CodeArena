@@ -533,13 +533,18 @@ const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
     const { token } = req.body
 
     const user = await User.findById( req.user._id )
-
+    console.log( "=== 2FA DEBUG ===" )
+    console.log( "Token received:", token )
+    console.log( "Token type:", typeof token )
+    console.log( "Secret exists:", !!user.twoFactorSecret )
+    console.log( "Secret value:", user.twoFactorSecret )
+    console.log( "=================" )
     const verify = speakeasy.totp.verify(
         {
             secret: user.twoFactorSecret,
             encoding: "base32",
             token: token.toString(),
-            window: 2
+            window: 6
         }
     )
 
@@ -576,7 +581,7 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
         secret: user.twoFactorSecret,
         encoding: "base32",
         token: token.toString(),
-        window: 2
+        window: 6
     } )
 
     if ( !ok ) throw new ApiError( 400, "Wrong 2FA Code" )
