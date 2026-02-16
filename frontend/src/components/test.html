@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<body style="background:#111; padding:40px">
+
+    <h2 style="color:white">File Test</h2>
+
+    <img id="preview"
+        style="width:100px;height:100px;border-radius:50%;border:3px solid #4ade80;display:none;object-fit:cover" />
+
+    <br><br>
+
+    <label for="f"
+        style="background:#4ade80;padding:12px 24px;border-radius:8px;color:black;font-weight:bold;font-size:16px;cursor:pointer;display:inline-block">
+        📷 Select Photo
+    </label>
+
+    <input type="file" id="f" accept="image/*" style="display:none" onchange="
+      var file = this.files[0];
+      document.getElementById('name').innerText = file ? file.name : 'nothing';
+      if(file){
+        var reader = new FileReader();
+        reader.onload = function(e){
+          var img = document.getElementById('preview');
+          img.src = e.target.result;
+          img.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+      }
+    " />
+
+    <p id="name" style="color:#4ade80;margin-top:10px">No file yet</p>
+
+</body>
+
+</html>
