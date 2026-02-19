@@ -1,0 +1,112 @@
+// ============================================================
+// LANGUAGES CONFIG — CodeArena Learning Platform
+// Add more languages here as courses are built
+// ============================================================
+
+import {
+    Code2, Terminal, Cpu, Zap, Layers, Shield,
+    Activity, Database, GitBranch, Globe
+} from "lucide-react";
+
+export const LANGUAGES = [
+    {
+        id: "html",
+        name: "HTML",
+        icon: Globe,
+        color: "#e34f26",
+        colorDim: "rgba(227,79,38,.12)",
+        description: "Structure of the web",
+        totalTopics: 20,
+        available: true,
+    },
+    {
+        id: "css",
+        name: "CSS",
+        icon: Layers,
+        color: "#2965f1",
+        colorDim: "rgba(41,101,241,.12)",
+        description: "Style and layout",
+        totalTopics: 22,
+        available: false,
+    },
+    {
+        id: "javascript",
+        name: "JavaScript",
+        icon: Code2,
+        color: "#f7df1e",
+        colorDim: "rgba(247,223,30,.1)",
+        description: "Make it interactive",
+        totalTopics: 30,
+        available: false,
+    },
+    {
+        id: "python",
+        name: "Python",
+        icon: Terminal,
+        color: "#3776ab",
+        colorDim: "rgba(55,118,171,.12)",
+        description: "Versatile & beginner-friendly",
+        totalTopics: 28,
+        available: false,
+    },
+    {
+        id: "java",
+        name: "Java",
+        icon: Cpu,
+        color: "#f89820",
+        colorDim: "rgba(248,152,32,.12)",
+        description: "Object-oriented powerhouse",
+        totalTopics: 25,
+        available: false,
+    },
+    {
+        id: "cpp",
+        name: "C++",
+        icon: Zap,
+        color: "#00599c",
+        colorDim: "rgba(0,89,156,.12)",
+        description: "Systems & performance",
+        totalTopics: 24,
+        available: false,
+    },
+    {
+        id: "typescript",
+        name: "TypeScript",
+        icon: Layers,
+        color: "#3178c6",
+        colorDim: "rgba(49,120,198,.12)",
+        description: "Typed JavaScript",
+        totalTopics: 20,
+        available: false,
+    },
+    {
+        id: "rust",
+        name: "Rust",
+        icon: Shield,
+        color: "#ce422b",
+        colorDim: "rgba(206,66,43,.12)",
+        description: "Safe systems programming",
+        totalTopics: 22,
+        available: false,
+    },
+    {
+        id: "go",
+        name: "Go",
+        icon: Activity,
+        color: "#00add8",
+        colorDim: "rgba(0,173,216,.12)",
+        description: "Concurrent & fast",
+        totalTopics: 20,
+        available: false,
+    },
+    {
+        id: "sql",
+        name: "SQL",
+        icon: Database,
+        color: "#f29111",
+        colorDim: "rgba(242,145,17,.12)",
+        description: "Database queries",
+        totalTopics: 18,
+        available: false,
+    },
+];

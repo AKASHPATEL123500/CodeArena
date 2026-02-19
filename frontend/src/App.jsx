@@ -11,6 +11,9 @@ import Profile from "./pages/profile"
 import ProtectedRoute from "./components/ProtectedRoute"
 import { AuthProvider } from "./context/AuthContext"
 import FileTest from "./components/fileTest"
+import CodeArenaImproved from "./pages/home"
+import Html from "./pages/html"
+import Learnings from "./pages/learing"
 
 
 function App() {
@@ -18,6 +21,7 @@ function App() {
     <AuthProvider>
       <Routes>
         {/* Public routes */ }
+        <Route path="/" element={ <CodeArenaImproved /> } />
         <Route path="/signup" element={ <Signup /> } />
         <Route path="/login" element={ <Login /> } />
         <Route path="/send-otp" element={ <SendOtp /> } />
@@ -28,6 +32,8 @@ function App() {
         <Route path="/file-test" element={ <FileTest /> } />
         {/* Alias routes for convenience */ }
         <Route path="/forgot-password" element={ <Navigate to="/send-otp?type=forgot" replace /> } />
+        <Route path="/html" element={ <Html /> } />
+        <Route path="/all-courses-free" element={ <Learnings /> } />
 
         {/* Protected routes */ }
         <Route

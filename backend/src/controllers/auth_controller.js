@@ -16,6 +16,7 @@ import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 
+// ================ Signup =========================
 const signup = asyncHandler( async ( req, res ) => {
 
     const { name, username, email, password, role } = req.body
@@ -105,7 +106,7 @@ const signup = asyncHandler( async ( req, res ) => {
     )
 } )
 
-
+// ================= Login ==========================
 const signin = asyncHandler( async ( req, res ) => {
 
     // 1. Get data from request body
@@ -215,7 +216,7 @@ const signin = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// =================== signout ======================
 const signout = asyncHandler( async ( req, res ) => {
 
     await User.findByIdAndUpdate(
@@ -246,7 +247,7 @@ const signout = asyncHandler( async ( req, res ) => {
 
 } )
 
-
+// ==================== New refreshToken =============
 const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 
     // 1. Get token
@@ -312,7 +313,7 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 } )
 
 
-// emila verifictaion system
+// =============== Emila verifictaion system =============
 const sendOtpEmail = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -321,18 +322,20 @@ const sendOtpEmail = asyncHandler( async ( req, res ) => {
     if ( !trimEmail ) throw new ApiError( 400, "Email is required" )
 
     const user = await User.findOne( { email: trimEmail.toLowerCase() } )
-    if ( !user ) throw new ApiError( 404, "Invaild creadentials" )
+
+    if ( !user ) throw new ApiError( 401, "Invaild Credential" )
 
     const otp = genrateOtp()
+
     user.emaillOtp = otp
     user.emailOtpExpire = Date.now() + 10 * 60 * 1000
-
     await user.save( { validateBeforeSave: false } )
+
 
     await sendMail(
         {
-            to: email,
-            subject: "Email verify OTP",
+            to: trimEmail,
+            subject: "Password Reset otp",
             text: "",
             html: otpTemplate( otp, user.name )
         }
@@ -344,45 +347,55 @@ const sendOtpEmail = asyncHandler( async ( req, res ) => {
             new ApiRespone(
                 200,
                 {},
-                "OTP sent successfully on your email. please check"
+                "OTP send successfully on your email. please check"
             )
         )
 } )
 
 
-// email OTP verify 
+// ==================== Emila verifictaion system ==========
 const verifyEmailOtp = asyncHandler( async ( req, res ) => {
 
+    // extract data from req.body 
     const { email, otp } = req.body
+
+    // trim email for white space 
     const trimEmail = email.trim()
 
+    // check all fileds are filed or not
     if ( !trimEmail || !otp ) throw new ApiError( 400, "All fields are required" )
 
+    // finde user in DB with email
     const user = await User.findOne( { email: trimEmail.toLowerCase() } )
 
-    if ( !user || user.emaillOtp !== otp ) throw new ApiError( 404, "Invalid credentials or OTP" )
+    // check user and email is viled or not
+    if ( !user || user.emaillOtp !== otp ) throw new ApiError( 400, "Invaild Credential" )
+
+    // check exmail OTP expiry date. otp vaild hai ki nhai 
+    if ( user.emailOtpExpire < Date.now() ) throw new ApiError( 400, "OTP is expire" )
 
 
-    if ( user.emailOtpExpire < Date.now() ) throw new ApiError( 400, "expired OTP" )
+    user.emaillOtp = undefined          // clear otp from database for secuirty
+    user.emailOtpExpire = undefined     // clear email otp expiry date for secuirty
+    user.isVerified = true              // verified true
 
-    user.emaillOtp = undefined
-    user.emailOtpExpire = undefined
-    user.isVerified = true
-
+    // user save 
     await user.save( { validateBeforeSave: false } )
 
-    return res.status( 200 ).json(
-        new ApiRespone(
-            200,
-            {},
-            "Email verify successfully"
+    // retunr success message with data
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "Email Verify Successfully"
+            )
         )
-    )
-
 } )
 
 
-// Forget passwrod system with send otp on email
+// ================ Forget passwrod system =================
 const forgetPassword = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -430,7 +443,7 @@ const forgetPassword = asyncHandler( async ( req, res ) => {
 } )
 
 
-
+// ================= Verify OTP =======================
 const verifyOtp = asyncHandler( async ( req, res ) => {
 
     const { email, otp } = req.body
@@ -455,7 +468,7 @@ const verifyOtp = asyncHandler( async ( req, res ) => {
 } )
 
 
-
+// ================== Reset Password =====================
 const resetPassword = asyncHandler( async ( req, res ) => {
 
     const { email, otp, newPassword, confirmPassword } = req.body
@@ -498,7 +511,7 @@ const resetPassword = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// =================== 2FA System =========================
 const genrate2FASecret = asyncHandler( async ( req, res ) => {
 
     const user = await User.findById( req.user._id )
@@ -527,18 +540,12 @@ const genrate2FASecret = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// =================== Verify 2FA ==========================
 const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
 
     const { token } = req.body
 
     const user = await User.findById( req.user._id )
-    console.log( "=== 2FA DEBUG ===" )
-    console.log( "Token received:", token )
-    console.log( "Token type:", typeof token )
-    console.log( "Secret exists:", !!user.twoFactorSecret )
-    console.log( "Secret value:", user.twoFactorSecret )
-    console.log( "=================" )
     const verify = speakeasy.totp.verify(
         {
             secret: user.twoFactorSecret,
@@ -564,7 +571,7 @@ const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// ==================== Verify 2FA Login ===================
 const verify2FALogin = asyncHandler( async ( req, res ) => {
 
     const { userId, token } = req.body
@@ -609,8 +616,7 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
-
+// ==================== passkey =============================
 const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
 
     const user = req.user
@@ -624,7 +630,7 @@ const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
     const options = await generateRegistrationOptions(
         {
             rpName: "CodeArena",
-            rpID: "code-arena-seven.vercel.app",
+            rpID: "localhost",
 
             userID: new TextEncoder().encode( user._id.toString() ),
             userName: user.email,
@@ -656,7 +662,7 @@ const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// ==================== Verify Passkey =======================
 const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
 
     const user = req.user
@@ -668,8 +674,8 @@ const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
         {
             response: credential,
             expectedChallenge: user.currentChallenge,
-            expectedOrigin: "https://code-arena-seven.vercel.app",
-            expectedRPID: "code-arena-seven.vercel.app",
+            expectedOrigin: "http://localhost:5173",
+            expectedRPID: "localhost",
             requireUserVerification: true
         }
     )
@@ -700,7 +706,7 @@ const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// ===================== login passkey =========================
 const startPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -720,7 +726,7 @@ const startPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const options = await generateAuthenticationOptions(
         {
-            rpID: "code-arena-seven.vercel.app",
+            rpID: "localhost",
             allowCredentials,
             userVerification: "required"
         }
@@ -740,7 +746,7 @@ const startPasskeyLogin = asyncHandler( async ( req, res ) => {
         )
 } )
 
-
+// ===================== veify login passkey ===================
 const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const { email, credential } = req.body
@@ -764,8 +770,8 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
     const verification = await verifyAuthenticationResponse( {
         response: credential,
         expectedChallenge: user.currentChallenge,
-        expectedOrigin: "https://code-arena-seven.vercel.app",
-        expectedRPID: "code-arena-seven.vercel.app",
+        expectedOrigin: "http://localhost:5173",
+        expectedRPID: "localhost",
         credential: {
             id: passkey.credentialID,
             publicKey: Buffer.from( passkey.publicKey, "base64url" ),

@@ -98,7 +98,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-5">
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-8 w-full max-w-lg">
+      <div className="bg-[#7570703a] border border-[#2a2a2a] rounded-xl p-8 w-full max-w-lg">
 
         <h2 className="text-white text-2xl font-bold m-0">Create Account</h2>
         <p className="text-[#888] text-sm mt-1 mb-6">Join CodeArena today</p>

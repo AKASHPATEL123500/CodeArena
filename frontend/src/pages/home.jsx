@@ -1,1223 +1,953 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Zap, Users, Trophy, Code, Brain, Sword, Shield, Target, Rocket, Crown, Star, 
-         Cpu, Activity, TrendingUp, Database, CheckCircle, Play, ChevronRight, Github, 
-         Twitter, Linkedin, Mail, Bell, Flame, Eye, Volume2, VolumeX, Medal, Award } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import {
+  Code2, Sword, Trophy, Users, Brain, Zap, Target, BookOpen,
+  TrendingUp, Shield, Star, ChevronRight, Play, Github,
+  Twitter, Linkedin, Youtube, Menu, X, Check, BarChart2,
+  Clock, Award, Flame, Cpu, Activity, MessageSquare,
+  ArrowRight, Globe, Sparkles, LogIn, UserPlus, ChevronDown,
+  Terminal, GitBranch, Layers, Database,
+  CheckCircle2, Minimize2, Maximize2
+} from "lucide-react";
 
-export default function CodeArenaImproved() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [activeFeature, setActiveFeature] = useState(null);
-  const [battleCount, setBattleCount] = useState(1247);
-  const [emailInput, setEmailInput] = useState('');
-  const [isNotifySuccess, setIsNotifySuccess] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [countdown, setCountdown] = useState({ days: 45, hours: 12, minutes: 34, seconds: 22 });
-  const [hoveredPricing, setHoveredPricing] = useState(null);
-  const [showVideo, setShowVideo] = useState(false);
-  const canvasRef = useRef(null);
+const C = {
+  bg: "#05050b", surface: "#0c0c18", card: "#111126", cardHover: "#15152e",
+  border: "rgba(99,102,241,.18)", borderHover: "rgba(99,102,241,.45)",
+  primary: "#6366f1", primaryDim: "rgba(99,102,241,.12)",
+  accent: "#06b6d4", accentDim: "rgba(6,182,212,.12)",
+  pink: "#f43f5e", pinkDim: "rgba(244,63,94,.12)",
+  green: "#10b981", greenDim: "rgba(16,185,129,.12)",
+  amber: "#f59e0b", amberDim: "rgba(245,158,11,.12)",
+  violet: "#8b5cf6", text: "#e2e8f0", muted: "#64748b", subtle: "#94a3b8",
+};
 
-  // Countdown timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        let { days, hours, minutes, seconds } = prev;
-        seconds--;
-        if (seconds < 0) {
-          seconds = 59;
-          minutes--;
-          if (minutes < 0) {
-            minutes = 59;
-            hours--;
-            if (hours < 0) {
-              hours = 23;
-              days--;
-            }
-          }
-        }
-        return { days, hours, minutes, seconds };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+const Pill = ( { children, color = C.primary } ) => (
+  <span style={ {
+    display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 11px", borderRadius: 100,
+    fontSize: 11, fontWeight: 700, background: `${ color }18`, color, border: `1px solid ${ color }30`,
+    letterSpacing: ".05em", textTransform: "uppercase",
+  } }>{ children }</span>
+);
 
-  // Optimized mouse tracking (throttled for performance)
-  useEffect(() => {
-    let rafId;
-    const handleMouseMove = (e) => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        setMousePosition({ x: e.clientX, y: e.clientY });
-        rafId = null;
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    
-    const battleInterval = setInterval(() => {
-      setBattleCount(prev => prev + Math.floor(Math.random() * 5) + 1);
-    }, 2500);
-    
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      clearInterval(battleInterval);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, []);
-
-  // Optimized Canvas animation
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d', { alpha: false });
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = [];
-    // Reduced particles for better performance
-    for (let i = 0; i < 40; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        radius: Math.random() * 1.5 + 0.5
-      });
-    }
-
-    let animationFrameId;
-    function animate() {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#8338ec';
-        ctx.fill();
-
-        // Only draw connections to nearby particles for performance
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dx = p.x - p2.x;
-          const dy = p.y - p2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(131, 56, 236, ${0.3 * (1 - dist / 100)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
-      });
-
-      animationFrameId = requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  const handleNotifyMe = (e) => {
-    e.preventDefault();
-    if (emailInput && emailInput.includes('@')) {
-      setIsNotifySuccess(true);
-      setTimeout(() => setIsNotifySuccess(false), 3000);
-      setEmailInput('');
-    }
+const Btn = ( { children, variant = "primary", onClick, type, style = {} } ) => {
+  const base = {
+    display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 22px", borderRadius: 11,
+    fontWeight: 700, cursor: "pointer", fontSize: 14, transition: "all .2s ease",
+    fontFamily: "inherit", whiteSpace: "nowrap", border: "none",
+    ...style,
   };
-
-  const features = [
-    { 
-      icon: <Sword className="w-10 h-10" />, 
-      title: "Real-Time Combat", 
-      description: "Compete in lightning-fast coding battles with live leaderboards and instant feedback",
-      color: "#ff006e", 
-      stats: "2.4M+ battles",
-      badge: "LIVE",
-      demo: "Watch developers solve algorithms in real-time with live syntax highlighting"
-    },
-    { 
-      icon: <Brain className="w-10 h-10" />, 
-      title: "Multi-AI Mentor", 
-      description: "GPT-4, Gemini Pro, and Grok provide personalized guidance and code analysis",
-      color: "#8338ec", 
-      stats: "1.8M hints",
-      badge: "AI-POWERED",
-      demo: "Get intelligent hints from multiple AI models, each with unique strengths"
-    },
-    { 
-      icon: <Users className="w-10 h-10" />, 
-      title: "Team Arenas", 
-      description: "Join forces in 2v2, 4v4 battles with voice chat and strategy planning",
-      color: "#3a86ff", 
-      stats: "52K+ teams",
-      badge: "MULTIPLAYER",
-      demo: "Coordinate with teammates, share code snippets, win together"
-    },
-    { 
-      icon: <Trophy className="w-10 h-10" />, 
-      title: "NFT Achievements", 
-      description: "Earn exclusive NFT badges, unlock rare skins, showcase your victories",
-      color: "#fb5607", 
-      stats: "10K+ NFTs",
-      badge: "WEB3",
-      demo: "Collect limited edition NFTs for tournament wins and milestones"
-    },
-    { 
-      icon: <Play className="w-10 h-10" />, 
-      title: "Live Streaming", 
-      description: "Stream your battles in 4K, build your audience, monetize your skills",
-      color: "#06ffa5", 
-      stats: "800+ streams",
-      badge: "CREATOR",
-      demo: "Professional streaming tools with overlays and sponsor integration"
-    },
-    { 
-      icon: <Activity className="w-10 h-10" />, 
-      title: "Performance Analytics", 
-      description: "Deep insights into code efficiency, time complexity, and improvement areas",
-      color: "#ffbe0b", 
-      stats: "200+ metrics",
-      badge: "PRO",
-      demo: "Track every metric: solve speed, memory usage, optimization score"
-    },
-    { 
-      icon: <Star className="w-10 h-10" />, 
-      title: "25+ Languages", 
-      description: "Master Python, Rust, Go, TypeScript, and 20+ more languages",
-      color: "#ff006e", 
-      stats: "25+ langs",
-      badge: "POLYGLOT",
-      demo: "Switch between languages mid-battle, auto-translate solutions"
-    },
-    { 
-      icon: <Flame className="w-10 h-10" />, 
-      title: "Daily Streaks", 
-      description: "Build coding habits with streak rewards, XP bonuses, and exclusive perks",
-      color: "#8338ec", 
-      stats: "10K+ on fire",
-      badge: "ADDICTIVE",
-      demo: "Maintain your streak, unlock multipliers, dominate leaderboards"
-    },
-  ];
-
-  const aiFeatures = [
-    { 
-      icon: <Brain />, 
-      title: "GPT-4 Turbo", 
-      description: "OpenAI's most advanced model for complex problem-solving and code generation",
-      gradient: "from-purple-600 to-pink-600",
-      features: ["Natural language hints", "Code refactoring", "Bug detection"]
-    },
-    { 
-      icon: <Sparkles />, 
-      title: "Gemini Pro", 
-      description: "Google's multimodal AI for visual code analysis and pattern recognition",
-      gradient: "from-cyan-500 to-blue-600",
-      features: ["Visual debugging", "Architecture analysis", "Performance optimization"]
-    },
-    { 
-      icon: <Zap />, 
-      title: "Grok AI", 
-      description: "X.AI's conversational model for real-time coding assistance and learning",
-      gradient: "from-orange-500 to-red-600",
-      features: ["Real-time suggestions", "Context-aware help", "Interactive learning"]
-    },
-    { 
-      icon: <Activity />, 
-      title: "Live Code Analysis", 
-      description: "Real-time bug detection and performance optimization across all AI models",
-      gradient: "from-green-500 to-emerald-600",
-      features: ["Instant feedback", "Complexity analysis", "Security checks"]
-    },
-    { 
-      icon: <TrendingUp />, 
-      title: "Smart Learning Paths", 
-      description: "AI creates personalized roadmaps based on your weaknesses and goals",
-      gradient: "from-violet-500 to-purple-600",
-      features: ["Adaptive difficulty", "Progress tracking", "Skill recommendations"]
-    },
-    { 
-      icon: <Database />, 
-      title: "Pattern Recognition", 
-      description: "AI learns your coding patterns and prevents common mistakes",
-      gradient: "from-yellow-500 to-orange-600",
-      features: ["Mistake prediction", "Style analysis", "Best practices"]
-    },
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Explorer", 
-      price: "Free", 
-      period: "Forever",
-      tagline: "Start your journey",
-      features: [
-        { text: "10 battles per day", included: true },
-        { text: "Basic AI hints", included: true },
-        { text: "Community challenges", included: true },
-        { text: "Public leaderboards", included: true },
-        { text: "Code playback", included: true },
-        { text: "Team tournaments", included: false },
-        { text: "Advanced analytics", included: false }
-      ],
-      popular: false, 
-      gradient: "from-slate-700 to-slate-900",
-      cta: "Start Free"
-    },
-    {
-      name: "Champion", 
-      price: "₹499", 
-      period: "/month",
-      tagline: "Most popular choice",
-      features: [
-        { text: "Unlimited battles", included: true },
-        { text: "GPT-4 + Gemini + Grok AI", included: true },
-        { text: "Private arenas", included: true },
-        { text: "Team tournaments", included: true },
-        { text: "Premium themes", included: true },
-        { text: "Priority matching", included: true },
-        { text: "Advanced analytics", included: true },
-        { text: "1080p streaming", included: true },
-        { text: "NFT badges", included: true },
-        { text: "Discord role", included: true }
-      ],
-      popular: true, 
-      gradient: "from-purple-600 via-pink-600 to-purple-600",
-      cta: "Get Champion",
-      savings: "Save 40%"
-    },
-    {
-      name: "Legend", 
-      price: "₹1,299", 
-      period: "/month",
-      tagline: "For elite coders",
-      features: [
-        { text: "Everything in Champion", included: true },
-        { text: "1-on-1 AI mentoring", included: true },
-        { text: "Custom tournaments", included: true },
-        { text: "White-label platform", included: true },
-        { text: "API access", included: true },
-        { text: "Dedicated support", included: true },
-        { text: "Early features", included: true },
-        { text: "Exclusive NFTs", included: true },
-        { text: "4K streaming", included: true },
-        { text: "Sponsor visibility", included: true }
-      ],
-      popular: false, 
-      gradient: "from-amber-500 via-orange-600 to-red-600",
-      cta: "Go Legend",
-      badge: "ULTIMATE"
-    }
-  ];
-
-  const leaderboard = [
-    { rank: 1, name: "CodeMaster_X", rating: 3247, wins: 847, avatar: "C", country: "🇮🇳", streak: 45 },
-    { rank: 2, name: "AlgoQueen", rating: 3156, wins: 723, avatar: "A", country: "🇺🇸", streak: 38 },
-    { rank: 3, name: "PyWarrior", rating: 3089, wins: 691, avatar: "P", country: "🇬🇧", streak: 29 },
-    { rank: 4, name: "RustNinja", rating: 2987, wins: 634, avatar: "R", country: "🇨🇦", streak: 25 },
-    { rank: 5, name: "JSDevil", rating: 2912, wins: 589, avatar: "J", country: "🇩🇪", streak: 22 },
-  ];
-
-  const stats = [
-    { label: "Active Battles", value: battleCount.toLocaleString(), icon: <Zap />, color: "#ff006e", change: "+12%" },
-    { label: "Global Warriors", value: "52.8K", icon: <Users />, color: "#8338ec", change: "+8%" },
-    { label: "Code Challenges", value: "3,200+", icon: <Code />, color: "#3a86ff", change: "+15%" },
-    { label: "AI Hints Given", value: "1.8M", icon: <Brain />, color: "#06ffa5", change: "+25%" }
-  ];
-
-  const battleDemo = {
-    player1: {
-      name: "DestroyerX",
-      avatar: "D",
-      rating: 2847,
-      winRate: 98,
-      code: [
-        "def twoSum(nums, target):",
-        "    seen = {}",
-        "    for i, num in enumerate(nums):",
-        "        complement = target - num",
-        "        if complement in seen:",
-        "            return [seen[complement], i]",
-        "        seen[num] = i"
-      ],
-      progress: 85
-    },
-    player2: {
-      name: "CodeNinja",
-      avatar: "C",
-      rating: 2156,
-      winRate: 94,
-      code: [
-        "function twoSum(nums, target) {",
-        "    const map = new Map();",
-        "    for (let i = 0; i < nums.length; i++) {",
-        "        const complement = target - nums[i];",
-        "        if (map.has(complement)) {",
-        "            return [map.get(complement), i];",
-        "        }",
-      ],
-      progress: 72
-    }
+  const v = {
+    primary: { background: `linear-gradient(135deg,${ C.primary },${ C.violet })`, color: "#fff", boxShadow: `0 4px 20px rgba(99,102,241,.3)` },
+    outline: { background: "transparent", color: C.text, border: `1px solid ${ C.border }` },
+    ghost: { background: "transparent", color: C.subtle, padding: "8px 14px" },
+    green: { background: `linear-gradient(135deg,${ C.green },#059669)`, color: "#fff", boxShadow: `0 4px 16px rgba(16,185,129,.25)` },
   };
-
   return (
-    <div className="relative min-h-screen bg-black text-white overflow-hidden">
-      {/* Optimized Canvas Background */}
-      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none opacity-30 z-0" />
+    <button onClick={ onClick } type={ type }
+      onMouseEnter={ e => e.currentTarget.style.transform = "translateY(-1px)" }
+      onMouseLeave={ e => e.currentTarget.style.transform = "none" }
+      style={ { ...base, ...v[ variant ] } }>
+      { children }
+    </button>
+  );
+};
 
-      {/* Dynamic Gradient Background */}
-      <div className="fixed inset-0 opacity-40 z-0 pointer-events-none">
-        <div 
-          className="absolute inset-0 transition-opacity duration-300" 
-          style={{ 
-            backgroundImage: `radial-gradient(circle 600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(131, 56, 236, 0.15), transparent 50%)` 
-          }} 
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black" />
-      </div>
+const GradText = ( { children } ) => (
+  <span style={ { background: `linear-gradient(135deg,${ C.accent },${ C.primary },${ C.pink })`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" } }>{ children }</span>
+);
 
-      {/* Optimized Floating Particles */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        {[...Array(30)].map((_, i) => (
-          <div 
-            key={i} 
-            className="absolute" 
-            style={{ 
-              left: `${Math.random() * 100}%`, 
-              top: `${Math.random() * 100}%`, 
-              animation: `float-3d ${15 + Math.random() * 20}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
-              willChange: 'transform'
-            }}
-          >
-            <div 
-              className="w-1 h-1 rounded-full blur-sm" 
-              style={{ 
-                background: ['#06ffa5', '#8338ec', '#ff006e', '#3a86ff'][Math.floor(Math.random() * 4)],
-                boxShadow: `0 0 ${10 + Math.random() * 15}px currentColor`,
-                opacity: 0.4
-              }} 
-            />
-          </div>
-        ))}
-      </div>
+const H2 = ( { children, style = {} } ) => (
+  <h2 style={ { fontWeight: 800, fontSize: "clamp(26px,4vw,46px)", lineHeight: 1.1, letterSpacing: "-1px", color: C.text, ...style } }>{ children }</h2>
+);
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl bg-black/60 border-b border-purple-500/20">
-        <nav className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative group cursor-pointer">
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300" />
-              <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                <Sword className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
-              </div>
+const SLabel = ( { children, color = C.accent } ) => (
+  <div style={ { marginBottom: 12 } }>
+    <Pill color={ color }><Sparkles size={ 10 } /> { children }</Pill>
+  </div>
+);
+
+/* ── NAVBAR ─────────────────────────────────────────── */
+function Navbar() {
+  const [ scrolled, setScrolled ] = useState( false );
+  const [ open, setOpen ] = useState( false );
+  useEffect( () => {
+    const h = () => setScrolled( window.scrollY > 20 );
+    window.addEventListener( "scroll", h );
+    return () => window.removeEventListener( "scroll", h );
+  }, [] );
+  const links = [ "Features", "Languages", "Battle", "AI Tools", "Pricing" ];
+  return (
+    <>
+      <nav style={ {
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
+        background: scrolled ? "rgba(5,5,11,.94)" : "transparent",
+        backdropFilter: scrolled ? "blur(20px)" : "none",
+        borderBottom: scrolled ? `1px solid ${ C.border }` : "1px solid transparent",
+        transition: "all .3s",
+      } }>
+        <div style={ { maxWidth: 1160, margin: "0 auto", padding: "0 20px", height: 62, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 } }>
+          <a href="#" style={ { display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0 } }>
+            <div style={ { width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg,${ C.primary },${ C.pink })`, display: "flex", alignItems: "center", justifyContent: "center" } }>
+              <Sword size={ 16 } color="#fff" />
             </div>
-            <div>
-              <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                CODE ARENA
-              </span>
-              <div className="text-xs text-gray-500 font-mono -mt-1">Launching Soon</div>
-            </div>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-semibold text-gray-300 hover:text-cyan-400 transition-colors relative group">
-              Features
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-400 group-hover:w-full transition-all duration-300" />
-            </a>
-            <a href="#ai" className="text-sm font-semibold text-gray-300 hover:text-purple-400 transition-colors relative group">
-              AI Power
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 group-hover:w-full transition-all duration-300" />
-            </a>
-            <a href="#pricing" className="text-sm font-semibold text-gray-300 hover:text-pink-400 transition-colors relative group">
-              Pricing
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-orange-400 group-hover:w-full transition-all duration-300" />
-            </a>
+            <span style={ { fontWeight: 800, fontSize: 18, letterSpacing: "-.5px", color: C.text } }>
+              Code<span style={ { color: C.accent } }>Arena</span>
+            </span>
+          </a>
+
+          {/* Desktop links */ }
+          <div style={ { display: "flex", gap: 2, alignItems: "center", flex: 1, justifyContent: "center" } } className="ca-desktop-links">
+            { links.map( l => (
+              <a key={ l } href={ `#${ l.toLowerCase().replace( " ", "-" ) }` }
+                style={ { color: C.muted, textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "7px 13px", borderRadius: 8, transition: "all .2s" } }
+                onMouseEnter={ e => { e.target.style.color = C.text; e.target.style.background = C.primaryDim; } }
+                onMouseLeave={ e => { e.target.style.color = C.muted; e.target.style.background = "transparent"; } }>
+                { l }
+              </a>
+            ) ) }
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button 
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-purple-500/30 flex items-center justify-center hover:bg-purple-500/10 transition-all"
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
-            <button className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-xs sm:text-sm font-bold hover:scale-105 transition-all shadow-lg shadow-purple-500/50">
-              Join Waitlist
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      {/* Improved Hero Section */}
-      <section className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 pt-32 pb-20">
-        <div className="relative max-w-7xl mx-auto w-full">
-          {/* Launch Status Badge */}
-          <div className="flex justify-center mb-8">
-            <div className="relative group cursor-pointer">
-              <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full blur opacity-75 group-hover:opacity-100 transition" />
-              <div className="relative inline-flex items-center gap-3 sm:gap-4 px-4 sm:px-8 py-3 sm:py-4 bg-black/80 backdrop-blur-xl border border-green-500/40 rounded-full">
-                <div className="relative flex items-center gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-400 rounded-full animate-ping absolute" />
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-400 rounded-full" />
-                </div>
-                <span className="text-xs sm:text-sm font-bold text-green-400">LAUNCHING SOON</span>
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                <span className="text-xs sm:text-sm text-gray-300 font-mono">
-                  {countdown.days}d {countdown.hours}h {countdown.minutes}m {countdown.seconds}s
-                </span>
-              </div>
-            </div>
+          <div style={ { display: "flex", gap: 8, alignItems: "center", flexShrink: 0 } } className="ca-desktop-auth">
+            <Btn variant="ghost" style={ { fontSize: 13, padding: "7px 14px" } }><LogIn size={ 14 } /> Sign In</Btn>
+            <Btn variant="primary" style={ { fontSize: 13, padding: "8px 18px" } }><UserPlus size={ 14 } /> Sign Up Free</Btn>
           </div>
 
-          {/* Main Hero Title - Interactive */}
-          <div className="text-center mb-12">
-            <h1 className="text-6xl sm:text-8xl lg:text-[10rem] font-black leading-none mb-6 relative">
-              <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent blur-2xl opacity-50">
-                CODE ARENA
-              </span>
-              <span className="relative bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent hover:scale-105 transition-transform duration-300 inline-block">
-                CODE ARENA
-              </span>
-            </h1>
-            
-            <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 flex-wrap">
-              <div className="h-px w-16 sm:w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent" />
-              <span className="text-lg sm:text-2xl lg:text-3xl font-light text-purple-400 tracking-[0.3em]">
-                BATTLE • EVOLVE • DOMINATE
-              </span>
-              <div className="h-px w-16 sm:w-24 bg-gradient-to-r from-transparent via-purple-500 to-transparent" />
-            </div>
-            
-            <p className="text-lg sm:text-2xl lg:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-12 px-4">
-              The world's first <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 font-bold">Multi-AI powered</span> competitive coding platform.
-              <br />
-              Join <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-bold">52,000+ elite developers</span> worldwide.
-            </p>
-
-            {/* Feature Pills - Interactive */}
-            <div className="flex flex-wrap justify-center gap-3 mb-12">
-              {[
-                { icon: <Brain className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Multi-AI Powered", gradient: "from-purple-600 to-pink-600" },
-                { icon: <Users className="w-4 h-4 sm:w-5 sm:h-5" />, text: "52K+ Warriors", gradient: "from-cyan-500 to-blue-600" },
-                { icon: <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Live Tournaments", gradient: "from-amber-500 to-orange-600" },
-                { icon: <Zap className="w-4 h-4 sm:w-5 sm:h-5" />, text: "Real-Time Battles", gradient: "from-green-500 to-emerald-600" },
-                { icon: <Star className="w-4 h-4 sm:w-5 sm:h-5" />, text: "25+ Languages", gradient: "from-pink-500 to-red-600" }
-              ].map((pill, i) => (
-                <div 
-                  key={i} 
-                  className="group relative cursor-pointer"
-                >
-                  <div className="absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-100 rounded-full blur transition duration-300" style={{ backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))` }} />
-                  <div className={`relative flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 bg-black rounded-full text-xs sm:text-sm font-bold border border-purple-500/30 group-hover:scale-105 transition-transform`}>
-                    {pill.icon}
-                    <span>{pill.text}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Email Signup - Improved */}
-            <div className="max-w-xl mx-auto mb-12 px-4">
-              <form onSubmit={handleNotifyMe} className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition" />
-                <div className="relative flex flex-col sm:flex-row gap-2 sm:gap-3 bg-black border border-purple-500/30 rounded-2xl p-2">
-                  <input
-                    type="email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="Enter your email to get early access"
-                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-transparent text-white placeholder-gray-500 focus:outline-none text-base sm:text-lg"
-                    required
-                  />
-                  <button 
-                    type="submit"
-                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-black text-base sm:text-lg hover:scale-105 transition-all shadow-lg shadow-purple-500/50 flex items-center justify-center gap-2"
-                  >
-                    <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Notify Me
-                  </button>
-                </div>
-              </form>
-              {isNotifySuccess && (
-                <div className="mt-4 px-6 py-3 bg-green-500/20 border border-green-500/50 rounded-lg text-green-400 text-center font-semibold text-sm sm:text-base">
-                  🎉 You're on the list! We'll notify you on launch day.
-                </div>
-              )}
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 px-4">
-              <button 
-                onClick={() => setShowVideo(true)}
-                className="group relative px-8 sm:px-10 py-4 sm:py-5 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 rounded-xl" />
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 rounded-xl blur-xl opacity-75 group-hover:opacity-100 transition" />
-                <span className="relative flex items-center justify-center gap-3 font-black text-lg sm:text-xl text-white">
-                  <Play className="w-5 h-5 sm:w-6 sm:h-6" />
-                  Watch Demo
-                </span>
-              </button>
-              <button className="px-8 sm:px-10 py-4 sm:py-5 bg-black/50 backdrop-blur-sm border-2 border-purple-500/50 rounded-xl font-bold text-lg sm:text-xl hover:bg-purple-500/20 transition-all flex items-center justify-center gap-3">
-                <Github className="w-5 h-5 sm:w-6 sm:h-6" />
-                View on GitHub
-              </button>
-            </div>
-          </div>
-
-          {/* Enhanced Battle Arena Demo */}
-          <div className="relative max-w-6xl mx-auto">
-            <div className="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-cyan-400/30 blur-3xl" />
-            <div className="relative bg-gradient-to-br from-black/90 via-purple-900/40 to-black/90 backdrop-blur-2xl border border-purple-500/40 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl">
-              {/* Battle Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-purple-500/30 gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="relative">
-                    <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl blur" />
-                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl">
-                      <Target className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-cyan-400 font-mono uppercase tracking-wider mb-1">LIVE BATTLE #2847</div>
-                    <div className="text-lg sm:text-2xl font-black text-white">Two Sum Challenge</div>
-                    <div className="text-xs text-gray-400">Difficulty: Medium • Competitive Mode</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                  <div className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-3 bg-gradient-to-r from-red-600/30 to-pink-600/30 border border-red-500/50 rounded-xl backdrop-blur-sm flex-1 sm:flex-initial justify-center">
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-base sm:text-lg font-black font-mono text-red-400">04:32</span>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-3 bg-purple-500/20 border border-purple-500/50 rounded-xl">
-                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-                    <span className="text-xs sm:text-sm font-bold text-purple-400">1.2K</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* Player Cards - Fully Responsive */}
-                {[battleDemo.player1, battleDemo.player2].map((player, idx) => (
-                  <div key={idx} className="space-y-3 sm:space-y-4">
-                    <div className="group relative">
-                      <div className={`absolute -inset-0.5 bg-gradient-to-r ${idx === 0 ? 'from-cyan-500 to-blue-600' : 'from-pink-500 to-purple-600'} rounded-2xl blur opacity-75 group-hover:opacity-100 transition`} />
-                      <div className={`relative flex items-center gap-3 sm:gap-5 bg-gradient-to-br ${idx === 0 ? 'from-cyan-500/20 to-blue-500/20 border-cyan-500/50' : 'from-pink-500/20 to-purple-500/20 border-pink-500/50'} border rounded-2xl p-4 sm:p-6 backdrop-blur-sm`}>
-                        <div className="relative flex-shrink-0">
-                          <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br ${idx === 0 ? 'from-cyan-400 to-blue-600' : 'from-pink-400 to-purple-600'} flex items-center justify-center font-black text-2xl sm:text-4xl shadow-xl`}>
-                            {player.avatar}
-                          </div>
-                          <div className={`absolute -bottom-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 ${idx === 0 ? 'bg-green-500' : 'bg-purple-500'} rounded-full border-4 border-black flex items-center justify-center`}>
-                            {idx === 0 ? <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-white" /> : <Brain className="w-3 h-3 sm:w-4 sm:h-4 text-white" />}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={`${idx === 0 ? 'text-cyan-400' : 'text-pink-400'} font-mono text-xs mb-1`}>PLAYER {idx + 1}</div>
-                          <div className="text-white font-black text-lg sm:text-2xl mb-2 truncate">{player.name}</div>
-                          <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap text-xs sm:text-sm">
-                            <span className={`${idx === 0 ? 'text-green-400' : 'text-purple-400'} font-bold`}>
-                              {idx === 0 ? `${player.winRate}% Win` : 'AI Assisted'}
-                            </span>
-                            <span className="text-gray-500">•</span>
-                            <span className="text-gray-400">{player.rating} Rating</span>
-                          </div>
-                          <div className="w-full bg-black/50 rounded-full h-2">
-                            <div 
-                              className={`h-2 bg-gradient-to-r ${idx === 0 ? 'from-cyan-400 to-blue-600' : 'from-pink-400 to-purple-600'} rounded-full transition-all duration-500`}
-                              style={{ width: `${player.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="relative group">
-                      <div className={`absolute -inset-0.5 ${idx === 0 ? 'bg-cyan-500/30' : 'bg-pink-500/30'} rounded-xl blur`} />
-                      <div className={`relative bg-black/80 border ${idx === 0 ? 'border-cyan-500/40' : 'border-pink-500/40'} rounded-xl p-4 sm:p-6 backdrop-blur-sm`}>
-                        <div className="flex items-center justify-between mb-4">
-                          <span className={`text-xs ${idx === 0 ? 'text-green-400' : 'text-purple-400'} font-mono flex items-center gap-2`}>
-                            {idx === 0 ? (
-                              <>
-                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                CODING
-                              </>
-                            ) : (
-                              <>
-                                <Brain className="w-4 h-4 animate-pulse" />
-                                AI THINKING
-                              </>
-                            )}
-                          </span>
-                          <span className="text-xs text-gray-400 font-mono">{idx === 0 ? 'Python 3.11' : 'JavaScript'}</span>
-                        </div>
-                        <div className="font-mono text-xs sm:text-sm space-y-1.5 overflow-x-auto">
-                          {player.code.map((line, i) => (
-                            <div key={i} className={`${i === 0 ? 'text-pink-400' : i === 1 ? 'text-purple-400' : i === 2 ? 'text-cyan-400' : 'text-gray-400'} whitespace-nowrap`}>
-                              {line}
-                            </div>
-                          ))}
-                          {idx === 1 && (
-                            <div className="flex items-center gap-2 text-purple-400 animate-pulse pt-2">
-                              <Brain className="w-4 h-4" />
-                              <span>Analyzing optimal solution...</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <button onClick={ () => setOpen( !open ) } className="ca-mobile-btn"
+            style={ { background: "none", border: "none", color: C.text, cursor: "pointer", padding: 4, display: "none" } }>
+            { open ? <X size={ 22 } /> : <Menu size={ 22 } /> }
+          </button>
         </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="relative z-10 border-y border-purple-500/20 bg-gradient-to-r from-black via-purple-900/20 to-black py-12 sm:py-20 px-4">
-        <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-          {stats.map((stat, i) => (
-            <div key={i} className="text-center group cursor-pointer">
-              <div className="relative inline-block mb-4">
-                <div className="absolute -inset-2 bg-gradient-to-r opacity-75 group-hover:opacity-100 rounded-2xl blur transition" style={{ background: stat.color }} />
-                <div 
-                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto flex items-center justify-center backdrop-blur-sm border" 
-                  style={{ 
-                    background: `linear-gradient(135deg, ${stat.color}20, ${stat.color}40)`,
-                    borderColor: `${stat.color}40`
-                  }}
-                >
-                  {React.cloneElement(stat.icon, { className: "w-8 h-8 sm:w-10 sm:h-10", style: { color: stat.color } })}
-                </div>
-              </div>
-              <div className="text-3xl sm:text-5xl font-black mb-2" style={{ color: stat.color }}>
-                {stat.value}
-              </div>
-              <div className="text-xs sm:text-sm text-gray-400 uppercase mb-2">{stat.label}</div>
-              <div className="text-xs text-green-400 font-bold">{stat.change}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Live Leaderboard Section - NEW */}
-      <section className="relative z-10 py-16 sm:py-32 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-12 sm:mb-20">
-            <h2 className="text-4xl sm:text-7xl md:text-8xl font-black mb-4 sm:mb-6">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Global Leaderboard
-              </span>
-            </h2>
-            <p className="text-gray-400 text-lg sm:text-2xl max-w-3xl mx-auto">
-              Compete with the world's best developers
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-cyan-400/20 blur-3xl" />
-            <div className="relative bg-gradient-to-br from-black/80 via-purple-900/30 to-black/80 backdrop-blur-2xl border border-purple-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
-              <div className="flex items-center justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-purple-500/30">
-                <div className="flex items-center gap-3">
-                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
-                  <span className="text-lg sm:text-2xl font-black">Top Warriors</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500/20 border border-green-500/50 rounded-lg">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-xs sm:text-sm font-bold text-green-400">LIVE</span>
-                </div>
-              </div>
-
-              <div className="space-y-3 sm:space-y-4">
-                {leaderboard.map((player) => (
-                  <div 
-                    key={player.rank}
-                    className="group relative p-4 sm:p-6 bg-white/5 hover:bg-white/10 border border-purple-500/20 hover:border-purple-500/40 rounded-xl sm:rounded-2xl transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 sm:gap-6">
-                      {/* Rank */}
-                      <div className={`flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-black text-lg sm:text-2xl ${
-                        player.rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-black' :
-                        player.rank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-black' :
-                        player.rank === 3 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-white' :
-                        'bg-purple-500/20 text-purple-400'
-                      }`}>
-                        {player.rank === 1 ? '🥇' : player.rank === 2 ? '🥈' : player.rank === 3 ? '🥉' : player.rank}
-                      </div>
-
-                      {/* Avatar */}
-                      <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center font-black text-xl sm:text-3xl shadow-xl">
-                        {player.avatar}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-black text-base sm:text-xl text-white truncate">{player.name}</span>
-                          <span className="text-lg sm:text-xl">{player.country}</span>
-                        </div>
-                        <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm flex-wrap">
-                          <span className="text-purple-400 font-bold">{player.rating} Rating</span>
-                          <span className="text-gray-600">•</span>
-                          <span className="text-green-400">{player.wins} Wins</span>
-                          <span className="text-gray-600">•</span>
-                          <span className="text-orange-400 flex items-center gap-1">
-                            <Flame className="w-3 h-3 sm:w-4 sm:h-4" />
-                            {player.streak} streak
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Medal Icon */}
-                      {player.rank <= 3 && (
-                        <div className="hidden sm:block">
-                          <Medal className={`w-8 h-8 ${
-                            player.rank === 1 ? 'text-yellow-400' :
-                            player.rank === 2 ? 'text-gray-400' :
-                            'text-amber-600'
-                          }`} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 sm:mt-8 text-center">
-                <button className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-sm sm:text-base hover:scale-105 transition-all">
-                  View Full Leaderboard
-                </button>
-              </div>
+        { open && (
+          <div style={ { background: "rgba(5,5,11,.98)", borderTop: `1px solid ${ C.border }`, padding: "16px 20px 24px" } }>
+            { links.map( l => (
+              <a key={ l } href={ `#${ l.toLowerCase().replace( " ", "-" ) }` }
+                onClick={ () => setOpen( false ) }
+                style={ { display: "block", color: C.subtle, textDecoration: "none", padding: "12px 0", fontSize: 16, fontWeight: 500, borderBottom: `1px solid ${ C.border }` } }>
+                { l }
+              </a>
+            ) ) }
+            <div style={ { display: "flex", gap: 10, marginTop: 18 } }>
+              <Btn variant="outline" style={ { flex: 1, justifyContent: "center", fontSize: 14 } }><LogIn size={ 14 } /> Sign In</Btn>
+              <Btn variant="primary" style={ { flex: 1, justifyContent: "center", fontSize: 14 } }><UserPlus size={ 14 } /> Sign Up Free</Btn>
             </div>
           </div>
-        </div>
-      </section>
+        ) }
+      </nav>
 
-      {/* Features Section */}
-      <section id="features" className="relative z-10 py-16 sm:py-32 px-4">
-        <div className="container mx-auto">
-          <div className="text-center mb-12 sm:mb-20">
-            <h2 className="text-4xl sm:text-7xl md:text-8xl font-black mb-4 sm:mb-6">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Dominate With Power
-              </span>
-            </h2>
-            <p className="text-gray-400 text-lg sm:text-2xl max-w-3xl mx-auto px-4">
-              Elite features for serious competitive programmers
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {features.map((feature, index) => (
-              <div 
-                key={index} 
-                className="group relative cursor-pointer"
-                onMouseEnter={() => setActiveFeature(index)} 
-                onMouseLeave={() => setActiveFeature(null)}
-              >
-                <div className="absolute -inset-0.5 bg-gradient-to-r opacity-0 group-hover:opacity-75 rounded-2xl sm:rounded-3xl blur transition duration-300" style={{ background: feature.color }} />
-                
-                <div className="relative h-full bg-black/80 backdrop-blur-xl border border-purple-500/30 rounded-2xl sm:rounded-3xl p-6 sm:p-8 group-hover:border-purple-500/60 transition-all duration-300">
-                  {/* Badge */}
-                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
-                    <div 
-                      className="px-2 sm:px-3 py-1 rounded-full text-xs font-black uppercase"
-                      style={{ 
-                        background: `${feature.color}20`,
-                        color: feature.color,
-                        border: `1px solid ${feature.color}40`
-                      }}
-                    >
-                      {feature.badge}
-                    </div>
-                  </div>
-
-                  <div 
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mb-4 sm:mb-6 flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" 
-                    style={{ 
-                      background: `linear-gradient(135deg, ${feature.color}30, ${feature.color}10)`,
-                      border: `2px solid ${feature.color}30`,
-                      boxShadow: `0 10px 40px ${feature.color}30`
-                    }}
-                  >
-                    {React.cloneElement(feature.icon, { style: { color: feature.color } })}
-                  </div>
-
-                  <h3 className="text-lg sm:text-2xl font-black mb-2 sm:mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                    {feature.title}
-                  </h3>
-
-                  <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6 leading-relaxed">
-                    {feature.description}
-                  </p>
-
-                  {activeFeature === index && (
-                    <div className="mt-4 p-3 sm:p-4 bg-black/60 rounded-xl border border-purple-500/30 animate-fadeIn">
-                      <p className="text-xs sm:text-sm text-gray-300">{feature.demo}</p>
-                    </div>
-                  )}
-
-                  <div 
-                    className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold"
-                    style={{ 
-                      background: `${feature.color}20`,
-                      borderColor: `${feature.color}40`,
-                      color: feature.color,
-                      border: '1px solid'
-                    }}
-                  >
-                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {feature.stats}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI Section - Updated with Gemini & Grok */}
-      <section id="ai" className="relative z-10 py-16 sm:py-32 px-4 bg-gradient-to-b from-black via-purple-900/20 to-black">
-        <div className="container mx-auto">
-          <div className="text-center mb-12 sm:mb-20">
-            <h2 className="text-4xl sm:text-7xl md:text-8xl font-black mb-4 sm:mb-6">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Multi-AI Superpowers
-              </span>
-            </h2>
-            <p className="text-gray-400 text-lg sm:text-2xl max-w-3xl mx-auto px-4">
-              Powered by GPT-4, Gemini Pro, and Grok to make you unstoppable
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
-            {aiFeatures.map((feat, i) => (
-              <div key={i} className="group relative">
-                <div className={`absolute -inset-0.5 bg-gradient-to-r ${feat.gradient} rounded-2xl blur opacity-0 group-hover:opacity-75 transition duration-300`} />
-                <div className="relative bg-gradient-to-br from-black/80 to-purple-900/40 border border-purple-500/30 rounded-2xl p-6 sm:p-8 group-hover:border-purple-500/60 transition-all backdrop-blur-sm h-full">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center mb-4 sm:mb-5 shadow-xl`}>
-                    {React.cloneElement(feat.icon, { className: "w-6 h-6 sm:w-7 sm:h-7 text-white" })}
-                  </div>
-                  <h4 className="text-lg sm:text-xl font-black text-white mb-2 sm:mb-3">{feat.title}</h4>
-                  <p className="text-xs sm:text-sm text-gray-400 leading-relaxed mb-4">{feat.description}</p>
-                  
-                  {feat.features && (
-                    <ul className="space-y-2">
-                      {feat.features.map((feature, j) => (
-                        <li key={j} className="flex items-center gap-2 text-xs text-gray-500">
-                          <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section - Fully Responsive */}
-      <section id="pricing" className="relative z-10 py-16 sm:py-32 px-4">
-        <div className="container mx-auto">
-          <div className="text-center mb-12 sm:mb-20">
-            <h2 className="text-4xl sm:text-7xl md:text-8xl font-black mb-4 sm:mb-6">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Choose Your Battle Plan
-              </span>
-            </h2>
-            <p className="text-gray-400 text-lg sm:text-2xl px-4">Launch special pricing • Limited time only</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto">
-            {pricingPlans.map((plan, index) => (
-              <div 
-                key={index} 
-                className="relative group"
-                onMouseEnter={() => setHoveredPricing(index)}
-                onMouseLeave={() => setHoveredPricing(null)}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 sm:-top-6 left-1/2 transform -translate-x-1/2 z-20">
-                    <div className="px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-xs sm:text-sm font-black shadow-xl shadow-purple-500/50">
-                      <Crown className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
-                      MOST POPULAR
-                    </div>
-                  </div>
-                )}
-
-                {plan.badge && (
-                  <div className="absolute -top-4 sm:-top-6 right-4 z-20">
-                    <div className="px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full text-xs font-black shadow-xl">
-                      {plan.badge}
-                    </div>
-                  </div>
-                )}
-
-                <div className={`absolute -inset-1 bg-gradient-to-br ${plan.gradient} rounded-2xl sm:rounded-3xl blur ${hoveredPricing === index ? 'opacity-75' : 'opacity-0'} transition duration-300`} />
-
-                <div className={`relative h-full bg-gradient-to-br ${plan.gradient} rounded-2xl sm:rounded-3xl p-6 sm:p-10 transform ${hoveredPricing === index ? 'scale-105' : ''} transition-all duration-300`}>
-                  <div className="absolute top-0 left-0 right-0 h-32 sm:h-48 bg-gradient-to-b from-white/10 to-transparent rounded-t-2xl sm:rounded-t-3xl" />
-                  
-                  <div className="relative">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center mb-4 sm:mb-6 shadow-xl">
-                      {index === 0 && <Shield className="w-8 h-8 sm:w-10 sm:h-10" />}
-                      {index === 1 && <Crown className="w-8 h-8 sm:w-10 sm:h-10" />}
-                      {index === 2 && <Rocket className="w-8 h-8 sm:w-10 sm:h-10" />}
-                    </div>
-
-                    <h3 className="text-3xl sm:text-4xl font-black mb-2 text-white">{plan.name}</h3>
-                    <p className="text-white/70 text-sm mb-4 sm:mb-6">{plan.tagline}</p>
-                    
-                    <div className="flex items-baseline gap-2 mb-6 sm:mb-8">
-                      <span className="text-5xl sm:text-7xl font-black text-white">{plan.price}</span>
-                      {plan.period !== "Forever" && <span className="text-white/60 text-lg sm:text-xl">{plan.period}</span>}
-                      {plan.period === "Forever" && <span className="text-white/60 text-lg sm:text-xl">forever</span>}
-                    </div>
-
-                    {plan.savings && (
-                      <div className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-white/20 rounded-full text-xs sm:text-sm font-bold text-white mb-4 sm:mb-6">
-                        💰 {plan.savings}
-                      </div>
-                    )}
-
-                    <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className={`flex items-start gap-2 sm:gap-3 text-xs sm:text-sm ${feature.included ? 'text-white/90' : 'text-white/40'}`}>
-                          <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${feature.included ? 'bg-white/20' : 'bg-white/10'}`}>
-                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </div>
-                          <span className="font-medium">{feature.text}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button className={`w-full py-4 sm:py-5 rounded-xl font-bold text-base sm:text-lg ${plan.popular ? 'bg-white text-purple-600 shadow-2xl' : 'bg-white/10 border-2 border-white/30 text-white hover:bg-white/20'} transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2`}>
-                      {plan.cta}
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12 sm:mt-16 px-4">
-            <p className="text-gray-400 text-base sm:text-lg mb-4">
-              🎁 <span className="text-purple-400 font-bold">Launch Special:</span> First 1,000 users get <span className="text-cyan-400 font-bold">50% off</span> for life!
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="relative z-10 py-16 sm:py-32 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-2xl sm:rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition duration-500" />
-            <div className="relative bg-gradient-to-br from-purple-900/60 to-pink-900/60 backdrop-blur-2xl border border-purple-500/50 rounded-2xl sm:rounded-3xl p-12 sm:p-20 text-center">
-              <h2 className="text-4xl sm:text-7xl md:text-8xl font-black mb-6 sm:mb-8">
-                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Ready To Battle?
-                </span>
-              </h2>
-              <p className="text-xl sm:text-2xl md:text-3xl text-gray-200 mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed px-4">
-                Join <span className="text-purple-400 font-black">52,000+ elite developers</span> preparing for launch.
-                <br />
-                Your coding evolution starts <span className="text-cyan-400 font-black">here</span>.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-8 sm:mb-12 px-4">
-                <button className="group px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-600 rounded-xl font-black text-lg sm:text-2xl hover:scale-105 transition-all shadow-2xl shadow-purple-500/50 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                  <span className="relative flex items-center justify-center gap-3">
-                    <Rocket className="w-5 h-5 sm:w-7 sm:h-7" />
-                    Join Waitlist Now
-                  </span>
-                </button>
-                <button className="px-8 sm:px-12 py-4 sm:py-6 bg-black/50 backdrop-blur-sm border-2 border-purple-500/50 rounded-xl font-bold text-lg sm:text-2xl hover:bg-purple-500/20 transition-all flex items-center justify-center gap-3">
-                  <Github className="w-5 h-5 sm:w-7 sm:h-7" />
-                  Star on GitHub
-                </button>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-gray-400 text-sm sm:text-base px-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                  <span>No credit card required</span>
-                </div>
-                <div className="hidden sm:block w-px h-4 bg-gray-600" />
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
-                  <span>Free tier available</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-purple-500/20 pt-12 sm:pt-20 pb-8 sm:pb-12 px-4 bg-gradient-to-b from-black to-purple-900/10">
-        <div className="container mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="relative inline-block mb-6 sm:mb-8">
-              <h2 className="text-6xl sm:text-9xl font-black leading-none">
-                <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent blur-2xl">
-                  CODE ARENA
-                </span>
-                <span className="relative bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  CODE
-                </span>
-              </h2>
-              <h2 className="text-6xl sm:text-9xl font-black leading-none">
-                <span className="text-white/10">ARENA</span>
-              </h2>
-            </div>
-            <p className="text-gray-500 text-xs sm:text-sm uppercase tracking-[0.5em]">Battle • Evolve • Dominate</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-12 mb-12 sm:mb-16">
-            <div className="col-span-2">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                  <Sword className="w-5 h-5 sm:w-7 sm:h-7" />
-                </div>
-                <div>
-                  <span className="text-lg sm:text-2xl font-black bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">CODE ARENA</span>
-                  <div className="text-xs text-gray-500">The Ultimate Coding Battleground</div>
-                </div>
-              </div>
-              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 max-w-md">
-                Revolutionizing competitive programming with Multi-AI features, real-time battles, and a global community of elite developers.
-              </p>
-              <div className="flex items-center gap-3">
-                {[Twitter, Github, Linkedin, Mail].map((Icon, i) => (
-                  <a key={i} href="#" className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white/5 hover:bg-purple-500/20 border border-purple-500/30 flex items-center justify-center transition-all">
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {[
-              { title: "Product", links: ['Features', 'Pricing', 'AI Coach', 'Tournaments', 'Leaderboards'] },
-              { title: "Resources", links: ['Documentation', 'Tutorials', 'Blog', 'Videos', 'Community'] },
-              { title: "Company", links: ['About Us', 'Careers', 'Press Kit', 'Contact', 'Partners'] }
-            ].map((col, i) => (
-              <div key={i}>
-                <h4 className="text-white font-black text-base sm:text-lg mb-4 sm:mb-6">{col.title}</h4>
-                <ul className="space-y-2 sm:space-y-3">
-                  {col.links.map((link, j) => (
-                    <li key={j}>
-                      <a href="#" className="text-gray-400 hover:text-purple-400 transition-colors text-xs sm:text-sm flex items-center gap-2 group">
-                        <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 pt-8 sm:pt-12 border-t border-purple-500/20">
-            <div className="text-xs sm:text-sm text-gray-600 text-center md:text-left">
-              © 2025 Code Arena. All rights reserved. Built with ❤️ by developers, for developers.
-            </div>
-            <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-600 flex-wrap justify-center">
-              <a href="#" className="hover:text-purple-400 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-purple-400 transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-purple-400 transition-colors">Cookies</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Video Modal */}
-      {showVideo && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 sm:p-6" onClick={() => setShowVideo(false)}>
-          <div className="relative max-w-6xl w-full aspect-video bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-2xl sm:rounded-3xl border border-purple-500/50 flex items-center justify-center">
-            <div className="text-center px-4">
-              <Play className="w-16 h-16 sm:w-24 sm:h-24 text-purple-400 mb-4 mx-auto" />
-              <p className="text-xl sm:text-2xl text-gray-300">Demo video coming soon!</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        * { 
-          font-family: 'Inter', sans-serif;
+      <style>{ `
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        html{scroll-behavior:smooth;}
+        body{font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+        ::-webkit-scrollbar{width:5px;}
+        ::-webkit-scrollbar-track{background:${ C.bg };}
+        ::-webkit-scrollbar-thumb{background:${ C.primary };border-radius:3px;}
+        @keyframes floatY{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+        @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+        @keyframes ping{0%{transform:scale(1);opacity:.8;}100%{transform:scale(1.8);opacity:0;}}
+        @keyframes gradX{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+        .ca-card{transition:transform .25s ease,border-color .25s,box-shadow .25s;}
+        .ca-card:hover{transform:translateY(-4px);border-color:${ C.borderHover }!important;box-shadow:0 12px 40px rgba(99,102,241,.1);}
+        .ca-link{transition:color .2s;cursor:pointer;}
+        .ca-link:hover{color:${ C.accent }!important;}
+        @media(max-width:768px){
+          .ca-desktop-links,.ca-desktop-auth{display:none!important;}
+          .ca-mobile-btn{display:flex!important;}
+          .ca-2col{grid-template-columns:1fr!important;}
+          .ca-3col{grid-template-columns:1fr!important;}
+          .ca-5col{grid-template-columns:repeat(2,1fr)!important;}
+          .ca-stats{grid-template-columns:repeat(2,1fr)!important;}
+          .ca-footer-grid{grid-template-columns:1fr 1fr!important;}
+          .ca-roadmap{flex-direction:column!important;align-items:flex-start!important;}
+          .ca-roadmap-dot{display:none!important;}
+          .ca-roadmap-spacer{display:none!important;}
+          .ca-hero-checks{gap:12px!important;flex-direction:column!important;align-items:center;}
         }
-
-        @keyframes float-3d {
-          0%, 100% { 
-            transform: translate3d(0, 0, 0); 
-            opacity: 0.2; 
-          }
-          50% { 
-            transform: translate3d(0, -20px, 0); 
-            opacity: 0.5; 
-          }
+        @media(max-width:480px){
+          .ca-5col{grid-template-columns:1fr!important;}
+          .ca-stats{grid-template-columns:1fr 1fr!important;}
         }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        html { 
-          scroll-behavior: smooth; 
-        }
-
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.5); }
-        ::-webkit-scrollbar-thumb { 
-          background: linear-gradient(to bottom, #8338ec, #ff006e); 
-          border-radius: 4px; 
-        }
-        ::-webkit-scrollbar-thumb:hover { 
-          background: linear-gradient(to bottom, #a855f7, #ff1a75); 
-        }
-
-        /* Performance optimizations */
-        * {
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        }
-
-        .will-change-transform {
-          will-change: transform;
-        }
+        @media(min-width:769px){.ca-mobile-btn{display:none!important;}}
       `}</style>
+    </>
+  );
+}
+
+/* ── HERO ───────────────────────────────────────────── */
+function Hero() {
+  const [ typed, setTyped ] = useState( "" );
+  const [ email, setEmail ] = useState( "" );
+  const [ done, setDone ] = useState( false );
+  const phrases = [ "Master Algorithms", "Win Coding Battles", "Learn with 3 AIs", "Build a Real Career" ];
+  const ph = useRef( 0 ), ch = useRef( 0 ), del = useRef( false );
+  useEffect( () => {
+    const t = setInterval( () => {
+      const cur = phrases[ ph.current ];
+      if ( !del.current ) {
+        ch.current++; setTyped( cur.slice( 0, ch.current ) );
+        if ( ch.current === cur.length ) setTimeout( () => { del.current = true; }, 1400 );
+      } else {
+        ch.current--; setTyped( cur.slice( 0, ch.current ) );
+        if ( ch.current === 0 ) { del.current = false; ph.current = ( ph.current + 1 ) % phrases.length; }
+      }
+    }, del.current ? 35 : 75 );
+    return () => clearInterval( t );
+  }, [] );
+  const onSubmit = e => {
+    e.preventDefault();
+    if ( email.includes( "@" ) ) { setDone( true ); setEmail( "" ); setTimeout( () => setDone( false ), 3500 ); }
+  };
+  return (
+    <section style={ { minHeight: "100vh", display: "flex", alignItems: "center", padding: "100px 20px 80px", position: "relative", overflow: "hidden", background: C.bg } }>
+      {/* Grid bg */ }
+      <div style={ { position: "absolute", inset: 0, zIndex: 0, backgroundImage: `linear-gradient(${ C.border } 1px,transparent 1px),linear-gradient(90deg,${ C.border } 1px,transparent 1px)`, backgroundSize: "64px 64px", maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%,black 40%,transparent 100%)" } } />
+      <div style={ { position: "absolute", top: "10%", left: "15%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(99,102,241,.14) 0%,transparent 65%)", filter: "blur(20px)", zIndex: 0 } } />
+      <div style={ { position: "absolute", bottom: "15%", right: "8%", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle,rgba(6,182,212,.1) 0%,transparent 65%)", filter: "blur(20px)", zIndex: 0 } } />
+
+      <div style={ { maxWidth: 860, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, width: "100%" } }>
+        <div style={ { marginBottom: 28 } }>
+          <div style={ { display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(99,102,241,.08)", border: `1px solid rgba(99,102,241,.22)`, borderRadius: 100, padding: "7px 18px", fontSize: 13, fontWeight: 600, color: C.subtle } }>
+            <span style={ { width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block", position: "relative" } }>
+              <span style={ { position: "absolute", inset: -3, borderRadius: "50%", background: C.green, opacity: .35, animation: "ping 1.3s ease-out infinite" } } />
+            </span>
+            Trusted by 52,000+ developers worldwide · 100% Free
+            <ChevronRight size={ 12 } color={ C.accent } />
+          </div>
+        </div>
+
+        <h1 style={ { fontWeight: 800, fontSize: "clamp(40px,8vw,84px)", lineHeight: 1.04, letterSpacing: "-2.5px", marginBottom: 18 } }>
+          Code. Battle.<br /><GradText>Dominate.</GradText>
+        </h1>
+
+        <div style={ { height: 34, marginBottom: 18 } }>
+          <span style={ { fontSize: "clamp(16px,2.5vw,22px)", color: C.subtle, fontWeight: 400 } }>
+            { typed }<span style={ { animation: "blink 1s infinite", color: C.accent } }>|</span>
+          </span>
+        </div>
+
+        <p style={ { fontSize: "clamp(14px,1.8vw,17px)", color: C.muted, maxWidth: 540, margin: "0 auto 36px", lineHeight: 1.8 } }>
+          The most advanced free coding platform. Learn 10+ languages, battle globally in real-time, and get mentored by <strong style={ { color: C.text } }>Claude AI, ChatGPT & Gemini</strong>.
+        </p>
+
+        <form onSubmit={ onSubmit } style={ { marginBottom: 18 } }>
+          <div style={ { display: "flex", gap: 6, maxWidth: 460, margin: "0 auto", background: "rgba(255,255,255,.04)", border: `1px solid ${ C.border }`, borderRadius: 13, padding: 5 } }>
+            <input type="email" value={ email } onChange={ e => setEmail( e.target.value ) } placeholder="Enter your email address" required
+              style={ { flex: 1, background: "transparent", border: "none", outline: "none", padding: "9px 13px", color: C.text, fontSize: 14, fontFamily: "inherit", minWidth: 0 } } />
+            <Btn type="submit" variant={ done ? "green" : "primary" } style={ { padding: "9px 20px", fontSize: 13 } }>
+              { done ? <><CheckCircle2 size={ 14 } /> Done!</> : <>Start Free <ArrowRight size={ 14 } /></> }
+            </Btn>
+          </div>
+        </form>
+
+        <div className="ca-hero-checks" style={ { display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", fontSize: 12, color: C.muted } }>
+          { [ "100% Free Forever", "No Credit Card", "Certificate Included", "3 AI Mentors" ].map( t => (
+            <div key={ t } style={ { display: "flex", alignItems: "center", gap: 5 } }>
+              <Check size={ 13 } color={ C.green } /><span>{ t }</span>
+            </div>
+          ) ) }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── STATS ──────────────────────────────────────────── */
+function Stats() {
+  const items = [
+    { icon: <Users size={ 18 } color={ C.accent } />, v: "52,000+", l: "Active Learners" },
+    { icon: <BookOpen size={ 18 } color={ C.primary } />, v: "500+", l: "Free Lessons" },
+    { icon: <Sword size={ 18 } color={ C.pink } />, v: "1.2M+", l: "Battles Fought" },
+    { icon: <Brain size={ 18 } color={ C.amber } />, v: "2.4M+", l: "AI Hints Given" },
+    { icon: <Award size={ 18 } color={ C.green } />, v: "18K+", l: "Certificates" },
+    { icon: <Globe size={ 18 } color={ C.violet } />, v: "120+", l: "Countries" },
+  ];
+  return (
+    <div style={ { background: C.surface, borderTop: `1px solid ${ C.border }`, borderBottom: `1px solid ${ C.border }`, padding: "32px 20px" } }>
+      <div className="ca-stats" style={ { maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 20, textAlign: "center" } }>
+        { items.map( ( s, i ) => (
+          <div key={ i }>
+            <div style={ { display: "flex", justifyContent: "center", marginBottom: 6 } }>{ s.icon }</div>
+            <div style={ { fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 800, color: C.text, letterSpacing: "-.5px" } }>{ s.v }</div>
+            <div style={ { fontSize: 11, color: C.muted, marginTop: 3 } }>{ s.l }</div>
+          </div>
+        ) ) }
+      </div>
+    </div>
+  );
+}
+
+/* ── AI DASHBOARD ───────────────────────────────────── */
+function AIDashboard() {
+  const [ activeAI, setActiveAI ] = useState( 0 );
+  const [ input, setInput ] = useState( "" );
+  const [ msgs, setMsgs ] = useState( [ { from: "ai", text: "Hi! I'm Claude AI. Paste your code or ask me anything — I'll explain it clearly." } ] );
+  const ais = [
+    { name: "Claude AI", by: "Anthropic", icon: <Brain size={ 15 } />, color: C.amber, desc: "Deep reasoning & explanations" },
+    { name: "ChatGPT", by: "OpenAI", icon: <Zap size={ 15 } />, color: C.green, desc: "Fast code generation & fixes" },
+    { name: "Gemini", by: "Google", icon: <Sparkles size={ 15 } />, color: C.accent, desc: "Multimodal & real-time search" },
+  ];
+  const samples = [ "Explain recursion with example", "Why is my loop not working?", "What is time complexity?", "Explain binary search" ];
+  const send = ( text ) => {
+    const q = text || input; if ( !q.trim() ) return;
+    setMsgs( m => [ ...m, { from: "user", text: q } ] ); setInput( "" );
+    setTimeout( () => setMsgs( m => [ ...m, { from: "ai", text: `Great question! Let me break down "${ q.substring( 0, 40 ) }..." step by step with examples. [${ ais[ activeAI ].name } analyzing...]` } ] ), 700 );
+  };
+  return (
+    <section id="ai-tools" style={ { padding: "90px 20px", background: C.bg } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 52 } }>
+          <SLabel color={ C.amber }><Brain size={ 10 } /> AI-Powered Learning</SLabel>
+          <H2 style={ { marginBottom: 14 } }>3 World-Class AI Mentors,<br /><GradText>Always Available</GradText></H2>
+          <p style={ { color: C.muted, fontSize: 16, maxWidth: 520, margin: "0 auto" } }>
+            Switch between Claude AI, ChatGPT, and Gemini instantly. Get explanations, code reviews, and hints — 24/7, 100% free.
+          </p>
+        </div>
+
+        {/* Chat mockup */ }
+        <div style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 18, overflow: "hidden", boxShadow: `0 24px 60px rgba(0,0,0,.35)`, marginBottom: 16 } }>
+          {/* Title bar */ }
+          <div style={ { padding: "11px 18px", background: "rgba(255,255,255,.025)", borderBottom: `1px solid ${ C.border }`, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } }>
+            <div style={ { display: "flex", gap: 5 } }>{ [ "#ff5f57", "#febc2e", "#28c840" ].map( c => <div key={ c } style={ { width: 11, height: 11, borderRadius: "50%", background: c } } /> ) }</div>
+            <div style={ { flex: 1, display: "flex", justifyContent: "center", minWidth: 0 } }>
+              <div style={ { background: "rgba(255,255,255,.05)", border: `1px solid ${ C.border }`, borderRadius: 7, padding: "3px 14px", fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }>codearena.io/ai-mentor</div>
+            </div>
+            <div style={ { display: "flex", gap: 8 } }>
+              <Minimize2 size={ 13 } color={ C.muted } /><Maximize2 size={ 13 } color={ C.muted } />
+            </div>
+          </div>
+
+          <div className="ca-2col" style={ { display: "grid", gridTemplateColumns: "200px 1fr" } }>
+            {/* Sidebar */ }
+            <div style={ { borderRight: `1px solid ${ C.border }`, padding: "16px 12px", background: "rgba(0,0,0,.12)" } }>
+              <div style={ { fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4 } }>Select AI</div>
+              { ais.map( ( ai, i ) => (
+                <div key={ i } onClick={ () => setActiveAI( i ) } style={ {
+                  display: "flex", alignItems: "center", gap: 9, padding: "9px 8px", borderRadius: 9, marginBottom: 5, cursor: "pointer",
+                  background: activeAI === i ? `${ ai.color }14` : "transparent",
+                  border: `1px solid ${ activeAI === i ? ai.color + "30" : "transparent" }`, transition: "all .18s",
+                } }>
+                  <div style={ { width: 28, height: 28, borderRadius: 7, background: activeAI === i ? `${ ai.color }22` : "rgba(255,255,255,.06)", display: "flex", alignItems: "center", justifyContent: "center", color: ai.color, flexShrink: 0 } }>{ ai.icon }</div>
+                  <div style={ { minWidth: 0 } }>
+                    <div style={ { fontSize: 12, fontWeight: 700, color: activeAI === i ? ai.color : C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }>{ ai.name }</div>
+                    <div style={ { fontSize: 10, color: C.muted } }>{ ai.by }</div>
+                  </div>
+                </div>
+              ) ) }
+              <div style={ { borderTop: `1px solid ${ C.border }`, marginTop: 12, paddingTop: 12 } }>
+                <div style={ { fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 8, paddingLeft: 4 } }>Try these</div>
+                { samples.map( ( q, i ) => (
+                  <div key={ i } onClick={ () => send( q ) } style={ { fontSize: 11, color: C.muted, padding: "6px 8px", borderRadius: 6, cursor: "pointer", marginBottom: 3, lineHeight: 1.4, transition: "all .15s" } }
+                    onMouseEnter={ e => { e.currentTarget.style.background = C.primaryDim; e.currentTarget.style.color = C.text; } }
+                    onMouseLeave={ e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; } }>
+                    "{ q }"
+                  </div>
+                ) ) }
+              </div>
+            </div>
+            {/* Chat */ }
+            <div style={ { display: "flex", flexDirection: "column" } }>
+              <div style={ { flex: 1, padding: "16px 20px", overflowY: "auto", maxHeight: 260, minHeight: 200 } }>
+                { msgs.map( ( m, i ) => (
+                  <div key={ i } style={ { display: "flex", gap: 10, marginBottom: 14, flexDirection: m.from === "user" ? "row-reverse" : "row" } }>
+                    <div style={ { width: 28, height: 28, borderRadius: 7, flexShrink: 0, background: m.from === "ai" ? `${ ais[ activeAI ].color }18` : C.primaryDim, border: `1px solid ${ m.from === "ai" ? ais[ activeAI ].color + "30" : C.border }`, display: "flex", alignItems: "center", justifyContent: "center", color: m.from === "ai" ? ais[ activeAI ].color : C.primary } }>
+                      { m.from === "ai" ? ais[ activeAI ].icon : <Code2 size={ 12 } /> }
+                    </div>
+                    <div style={ { background: m.from === "ai" ? "rgba(255,255,255,.04)" : C.primaryDim, border: `1px solid ${ m.from === "ai" ? C.border : `${ C.primary }28` }`, borderRadius: m.from === "ai" ? "4px 11px 11px 11px" : "11px 4px 11px 11px", padding: "9px 13px", fontSize: 13, color: C.text, lineHeight: 1.6, maxWidth: "76%" } }>
+                      { m.text }
+                    </div>
+                  </div>
+                ) ) }
+              </div>
+              <div style={ { borderTop: `1px solid ${ C.border }`, padding: "10px 16px", display: "flex", gap: 8 } }>
+                <input value={ input } onChange={ e => setInput( e.target.value ) } onKeyDown={ e => e.key === "Enter" && send() }
+                  placeholder={ `Ask ${ ais[ activeAI ].name } anything…` }
+                  style={ { flex: 1, background: "rgba(255,255,255,.04)", border: `1px solid ${ C.border }`, borderRadius: 9, padding: "9px 13px", color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none" } } />
+                <Btn variant="primary" onClick={ () => send() } style={ { padding: "9px 16px" } }><ArrowRight size={ 14 } /></Btn>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="ca-3col" style={ { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 } }>
+          { ais.map( ( ai, i ) => (
+            <div key={ i } className="ca-card" style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }>
+              <div style={ { width: 34, height: 34, borderRadius: 9, background: `${ ai.color }16`, border: `1px solid ${ ai.color }28`, display: "flex", alignItems: "center", justifyContent: "center", color: ai.color, flexShrink: 0 } }>{ ai.icon }</div>
+              <div>
+                <div style={ { fontWeight: 700, fontSize: 13, color: C.text } }>{ ai.name } <span style={ { color: C.muted, fontWeight: 400, fontSize: 11 } }>by { ai.by }</span></div>
+                <div style={ { fontSize: 11, color: C.muted, marginTop: 2 } }>{ ai.desc }</div>
+              </div>
+            </div>
+          ) ) }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── ANALYTICS DASHBOARD ────────────────────────────── */
+function AnalyticsDashboard() {
+  const bars = [
+    { lang: "Py", val: 84, color: C.accent }, { lang: "JS", val: 67, color: C.amber },
+    { lang: "Java", val: 45, color: C.pink }, { lang: "C++", val: 58, color: C.violet },
+    { lang: "TS", val: 72, color: C.primary }, { lang: "Go", val: 39, color: C.green },
+  ];
+  const activity = [
+    { icon: <CheckCircle2 size={ 13 } color={ C.green } />, text: "Solved Two Sum — Easy", time: "2m ago", xp: "+50 XP" },
+    { icon: <Sword size={ 13 } color={ C.pink } />, text: "Won battle vs AlgoQueen", time: "14m ago", xp: "+200 XP" },
+    { icon: <BookOpen size={ 13 } color={ C.accent } />, text: "Completed Recursion lesson", time: "1h ago", xp: "+30 XP" },
+    { icon: <Trophy size={ 13 } color={ C.amber } />, text: "Earned 'Week Streak' badge", time: "3h ago", xp: "+100 XP" },
+  ];
+  return (
+    <section style={ { padding: "90px 20px", background: C.surface } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 52 } }>
+          <SLabel color={ C.green }><BarChart2 size={ 10 } /> Progress Dashboard</SLabel>
+          <H2 style={ { marginBottom: 14 } }>Track Every Step of<br /><GradText>Your Growth</GradText></H2>
+          <p style={ { color: C.muted, fontSize: 16, maxWidth: 500, margin: "0 auto" } }>
+            Your personal analytics dashboard tracks progress, streaks, battle history, and skill gaps in real time.
+          </p>
+        </div>
+
+        <div style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 18, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.3)" } }>
+          {/* Bar */ }
+          <div style={ { padding: "12px 22px", borderBottom: `1px solid ${ C.border }`, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" } }>
+            <div style={ { display: "flex", gap: 5 } }>{ [ "#ff5f57", "#febc2e", "#28c840" ].map( c => <div key={ c } style={ { width: 11, height: 11, borderRadius: "50%", background: c } } /> ) }</div>
+            <span style={ { fontSize: 12, color: C.muted, fontFamily: "'DM Mono',monospace" } }>codearena.io/dashboard</span>
+            <div style={ { marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" } }>
+              <Pill color={ C.green }><Flame size={ 10 } /> 28-Day Streak</Pill>
+              <Pill color={ C.primary }><Star size={ 10 } /> Level 14</Pill>
+            </div>
+          </div>
+
+          <div className="ca-2col" style={ { display: "grid", gridTemplateColumns: "1fr 1fr" } }>
+            {/* Left */ }
+            <div style={ { padding: 20, borderRight: `1px solid ${ C.border }` } }>
+              <div className="ca-2col" style={ { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 } }>
+                { [
+                  { l: "Total XP", v: "12,450", icon: <Zap size={ 14 } color={ C.amber } />, color: C.amber, sub: "+340 this week" },
+                  { l: "Battles Won", v: "87", icon: <Sword size={ 14 } color={ C.pink } />, color: C.pink, sub: "72% win rate" },
+                  { l: "Lessons Done", v: "134", icon: <BookOpen size={ 14 } color={ C.accent } />, color: C.accent, sub: "of 500 total" },
+                  { l: "Global Rank", v: "#432", icon: <Trophy size={ 14 } color={ C.primary } />, color: C.primary, sub: "↑ 58 places" },
+                ].map( ( m, i ) => (
+                  <div key={ i } style={ { background: "rgba(255,255,255,.03)", border: `1px solid ${ C.border }`, borderRadius: 11, padding: "12px 14px" } }>
+                    <div style={ { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 } }><span style={ { fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" } }>{ m.l }</span>{ m.icon }</div>
+                    <div style={ { fontSize: 22, fontWeight: 800, color: m.color, marginBottom: 3 } }>{ m.v }</div>
+                    <div style={ { fontSize: 10, color: C.muted } }>{ m.sub }</div>
+                  </div>
+                ) ) }
+              </div>
+              <div style={ { background: "rgba(255,255,255,.02)", border: `1px solid ${ C.border }`, borderRadius: 11, padding: "14px 16px" } }>
+                <div style={ { fontSize: 11, color: C.muted, fontWeight: 600, marginBottom: 12 } }>Language Proficiency</div>
+                <div style={ { display: "flex", gap: 8, alignItems: "flex-end", height: 72 } }>
+                  { bars.map( ( b, i ) => (
+                    <div key={ i } style={ { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 } }>
+                      <div style={ { fontSize: 8, color: C.muted } }>{ b.val }%</div>
+                      <div style={ { width: "100%", height: `${ b.val * .6 }px`, borderRadius: "3px 3px 0 0", background: `linear-gradient(180deg,${ b.color },${ b.color }70)` } } />
+                      <div style={ { fontSize: 9, color: C.muted } }>{ b.lang }</div>
+                    </div>
+                  ) ) }
+                </div>
+              </div>
+            </div>
+            {/* Right */ }
+            <div style={ { padding: 20 } }>
+              <div style={ { fontSize: 11, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 14 } }>Recent Activity</div>
+              { activity.map( ( a, i ) => (
+                <div key={ i } style={ { display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < 3 ? `1px solid ${ C.border }` : "none" } }>
+                  <div style={ { width: 30, height: 30, borderRadius: 7, background: "rgba(255,255,255,.04)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }>{ a.icon }</div>
+                  <div style={ { flex: 1, minWidth: 0 } }>
+                    <div style={ { fontSize: 12, color: C.text, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }>{ a.text }</div>
+                    <div style={ { fontSize: 10, color: C.muted, marginTop: 1 } }>{ a.time }</div>
+                  </div>
+                  <div style={ { fontSize: 11, fontWeight: 700, color: C.green, flexShrink: 0 } }>{ a.xp }</div>
+                </div>
+              ) ) }
+              <div style={ { marginTop: 16, background: "rgba(255,255,255,.02)", border: `1px solid ${ C.border }`, borderRadius: 11, padding: "12px 14px" } }>
+                <div style={ { fontSize: 10, color: C.muted, fontWeight: 600, marginBottom: 8 } }>Coding Activity — Last 28 days</div>
+                <div style={ { display: "flex", gap: 3, flexWrap: "wrap" } }>
+                  { Array.from( { length: 28 }, ( _, i ) => {
+                    const r = Math.random();
+                    return <div key={ i } style={ { width: 12, height: 12, borderRadius: 2, background: r > .7 ? C.primary : r > .4 ? `${ C.primary }55` : "rgba(255,255,255,.07)" } } />;
+                  } ) }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FEATURES ───────────────────────────────────────── */
+function Features() {
+  const items = [
+    { icon: <Sword size={ 20 } />, title: "Live Battle Arena", desc: "Real-time 1v1 or team coding battles. Earn XP, climb leaderboards, and sharpen your skills under competitive pressure.", color: C.pink },
+    { icon: <Brain size={ 20 } />, title: "Triple AI Mentor", desc: "Claude, ChatGPT & Gemini explain concepts, review code, and give personalized hints — like having 3 expert tutors.", color: C.amber },
+    { icon: <BookOpen size={ 20 } />, title: "500+ Structured Lessons", desc: "Curated curriculum from absolute beginner to advanced. Each lesson builds logically with real examples and exercises.", color: C.accent },
+    { icon: <Trophy size={ 20 } />, title: "Weekly Tournaments", desc: "Weekly coding competitions with global rankings. Serious practice against thousands of developers worldwide.", color: C.primary },
+    { icon: <BarChart2 size={ 20 } />, title: "Progress Analytics", desc: "AI-powered dashboard tracks skill gaps, speed, accuracy, and improvement areas with actionable insights.", color: C.green },
+    { icon: <Users size={ 20 } />, title: "50K+ Dev Community", desc: "Ask questions, share projects, find teammates. A thriving, helpful, non-toxic developer community.", color: C.violet },
+    { icon: <Award size={ 20 } />, title: "Verified Certificates", desc: "Earn recognized certificates on completion, shareable directly to LinkedIn and your professional resume.", color: C.pink },
+    { icon: <Target size={ 20 } />, title: "Interview Prep Mode", desc: "Dedicated FAANG-style prep with time-limited challenges, mock interviews, and detailed performance reviews.", color: C.amber },
+    { icon: <GitBranch size={ 20 } />, title: "Project-Based Learning", desc: "Build real projects at the end of each course. Create a portfolio that actually shows employers what you can do.", color: C.accent },
+  ];
+  return (
+    <section id="features" style={ { padding: "90px 20px", background: C.bg } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 52 } }>
+          <SLabel color={ C.primary }><Layers size={ 10 } /> Platform Features</SLabel>
+          <H2 style={ { marginBottom: 14 } }>Everything You Need to<br /><GradText>Become a Great Developer</GradText></H2>
+          <p style={ { color: C.muted, fontSize: 16, maxWidth: 500, margin: "0 auto" } }>Built by developers who know what's needed to level up — not just theory, but real, applicable skills.</p>
+        </div>
+        <div className="ca-3col" style={ { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 } }>
+          { items.map( ( f, i ) => (
+            <div key={ i } className="ca-card" style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 14, padding: 24 } }
+              onMouseEnter={ e => e.currentTarget.style.borderColor = `${ f.color }50` }
+              onMouseLeave={ e => e.currentTarget.style.borderColor = C.border }>
+              <div style={ { width: 40, height: 40, borderRadius: 10, marginBottom: 16, background: `${ f.color }12`, border: `1px solid ${ f.color }22`, display: "flex", alignItems: "center", justifyContent: "center", color: f.color } }>{ f.icon }</div>
+              <h3 style={ { fontSize: 15, fontWeight: 700, marginBottom: 8, color: C.text } }>{ f.title }</h3>
+              <p style={ { fontSize: 13, color: C.muted, lineHeight: 1.7 } }>{ f.desc }</p>
+            </div>
+          ) ) }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── LANGUAGES ──────────────────────────────────────── */
+function Languages() {
+  const [ hov, setHov ] = useState( null );
+  const langs = [
+    { name: "JavaScript", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
+    { name: "Python", icon: <Terminal size={ 20 } />, color: "#3776ab", lessons: 45, lvl: "Beginner → Pro" },
+    { name: "Java", icon: <Cpu size={ 20 } />, color: "#f89820", lessons: 40, lvl: "Intermediate" },
+    { name: "C++", icon: <Zap size={ 20 } />, color: "#00599c", lessons: 35, lvl: "Intermediate" },
+    { name: "TypeScript", icon: <Layers size={ 20 } />, color: "#3178c6", lessons: 40, lvl: "Intermediate" },
+    { name: "Rust", icon: <Shield size={ 20 } />, color: "#ce422b", lessons: 28, lvl: "Advanced" },
+    { name: "Go", icon: <Activity size={ 20 } />, color: "#00add8", lessons: 30, lvl: "Intermediate" },
+    { name: "SQL", icon: <Database size={ 20 } />, color: "#f29111", lessons: 25, lvl: "Beginner → Pro" },
+    { name: "C", icon: <GitBranch size={ 20 } />, color: "#a8b9cc", lessons: 30, lvl: "Intermediate" },
+    { name: "HTML/CSS", icon: <Globe size={ 20 } />, color: "#e34f26", lessons: 35, lvl: "Beginner" },
+  ];
+  return (
+    <section id="languages" style={ { padding: "90px 20px", background: C.surface } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 52 } }>
+          <SLabel color={ C.accent }><Globe size={ 10 } /> 10 Languages</SLabel>
+          <H2 style={ { marginBottom: 14 } }>Choose Your Language,<br /><GradText>Start in Minutes</GradText></H2>
+          <p style={ { color: C.muted, fontSize: 16, maxWidth: 500, margin: "0 auto" } }>Every language has a complete structured curriculum from beginner to advanced. All free.</p>
+        </div>
+        <div className="ca-5col" style={ { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 13 } }>
+          { langs.map( ( l, i ) => (
+            <div key={ i } className="ca-card" style={ {
+              background: hov === i ? `${ l.color }0b` : C.card,
+              border: `1px solid ${ hov === i ? l.color + "40" : C.border }`,
+              borderRadius: 13, padding: "20px 14px", textAlign: "center", cursor: "pointer", transition: "all .24s",
+            } }
+              onMouseEnter={ () => setHov( i ) } onMouseLeave={ () => setHov( null ) }>
+              <div style={ { width: 44, height: 44, borderRadius: 11, margin: "0 auto 11px", background: hov === i ? `${ l.color }1c` : "rgba(255,255,255,.05)", border: `1px solid ${ hov === i ? l.color + "45" : "transparent" }`, display: "flex", alignItems: "center", justifyContent: "center", color: l.color, transition: "all .24s" } }>{ l.icon }</div>
+              <div style={ { fontWeight: 700, fontSize: 13, marginBottom: 4, color: C.text } }>{ l.name }</div>
+              <div style={ { fontSize: 11, color: C.muted, marginBottom: hov === i ? 8 : 0 } }>{ l.lessons } Lessons</div>
+              { hov === i && <Pill color={ l.color }>{ l.lvl }</Pill> }
+            </div>
+          ) ) }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── BATTLE ─────────────────────────────────────────── */
+function Battle() {
+  const [ p1, setP1 ] = useState( 72 );
+  const [ p2, setP2 ] = useState( 58 );
+  useEffect( () => {
+    const t = setInterval( () => {
+      setP1( v => Math.min( 99, v + ( Math.random() > .6 ? 2 : 0 ) ) );
+      setP2( v => Math.min( 99, v + ( Math.random() > .7 ? 2 : 0 ) ) );
+    }, 800 );
+    return () => clearInterval( t );
+  }, [] );
+  return (
+    <section id="battle" style={ { padding: "90px 20px", background: C.bg } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div className="ca-2col" style={ { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" } }>
+          <div>
+            <SLabel color={ C.pink }><Sword size={ 10 } /> Battle Arena</SLabel>
+            <H2 style={ { marginBottom: 18 } }>Compete. Learn.<br /><GradText>Rise Through the Ranks.</GradText></H2>
+            <p style={ { color: C.muted, fontSize: 15, lineHeight: 1.8, marginBottom: 26 } }>
+              Real-time coding battles where you and an opponent solve the same problem. Fastest correct solution wins. It's the most effective way to build real coding instincts.
+            </p>
+            { [
+              { icon: <Sword size={ 15 } />, t: "1v1 Duels", d: "Head-to-head battles, any language", c: C.pink },
+              { icon: <Users size={ 15 } />, t: "Team Battles", d: "2v2, 3v3 team competitions", c: C.accent },
+              { icon: <Trophy size={ 15 } />, t: "Weekly Tournaments", d: "Compete for rankings & recognition", c: C.amber },
+              { icon: <Brain size={ 15 } />, t: "vs AI Mode", d: "Practice battles against AI opponents", c: C.primary },
+            ].map( ( b, i ) => (
+              <div key={ i } style={ { display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 } }>
+                <div style={ { width: 34, height: 34, borderRadius: 9, background: `${ b.c }12`, border: `1px solid ${ b.c }22`, display: "flex", alignItems: "center", justifyContent: "center", color: b.c, flexShrink: 0, marginTop: 2 } }>{ b.icon }</div>
+                <div>
+                  <div style={ { fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 2 } }>{ b.t }</div>
+                  <div style={ { fontSize: 12, color: C.muted } }>{ b.d }</div>
+                </div>
+              </div>
+            ) ) }
+          </div>
+
+          <div style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 18, overflow: "hidden" } }>
+            <div style={ { padding: "11px 16px", borderBottom: `1px solid ${ C.border }`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 } }>
+              <div style={ { display: "flex", alignItems: "center", gap: 8 } }>
+                <div style={ { width: 7, height: 7, borderRadius: "50%", background: C.pink, animation: "ping .9s ease-out infinite" } } />
+                <span style={ { fontSize: 12, color: C.text, fontWeight: 600 } }>Live Battle #2847</span>
+              </div>
+              <Pill color={ C.pink }><Clock size={ 9 } /> 03:48</Pill>
+            </div>
+            <div style={ { padding: "14px 16px", borderBottom: `1px solid ${ C.border }` } }>
+              <div style={ { fontSize: 10, color: C.muted, fontWeight: 600, marginBottom: 5 } }>PROBLEM</div>
+              <div style={ { fontSize: 14, color: C.text, fontWeight: 600, marginBottom: 4 } }>Two Sum</div>
+              <div style={ { fontSize: 12, color: C.muted, lineHeight: 1.5 } }>Given an array of integers, return indices of the two numbers that add up to target.</div>
+            </div>
+            { [ { name: "CodeMasterX", flag: "🇮🇳", p: p1, c: C.accent, s: "Typing…" }, { name: "AlgoQueen", flag: "🇺🇸", p: p2, c: C.pink, s: "Testing…" } ].map( ( pl, i ) => (
+              <div key={ i } style={ { padding: "13px 16px", borderBottom: i === 0 ? `1px solid ${ C.border }` : "none" } }>
+                <div style={ { display: "flex", alignItems: "center", gap: 9, marginBottom: 9 } }>
+                  <div style={ { width: 30, height: 30, borderRadius: 7, background: `${ pl.c }1c`, border: `1px solid ${ pl.c }38`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: pl.c } }>{ pl.name[ 0 ] }</div>
+                  <div style={ { flex: 1 } }>
+                    <div style={ { fontSize: 13, fontWeight: 700, color: C.text } }>{ pl.name } { pl.flag }</div>
+                    <div style={ { fontSize: 10, color: C.muted } }>{ pl.s }</div>
+                  </div>
+                  <div style={ { fontSize: 12, fontWeight: 700, color: pl.c } }>{ pl.p }%</div>
+                </div>
+                <div style={ { background: "rgba(255,255,255,.06)", borderRadius: 5, height: 5 } }>
+                  <div style={ { height: "100%", width: `${ pl.p }%`, borderRadius: 5, background: `linear-gradient(90deg,${ pl.c },${ pl.c }80)`, transition: "width .4s ease" } } />
+                </div>
+              </div>
+            ) ) }
+            <div style={ { padding: "12px 16px", textAlign: "center" } }>
+              <Btn variant="primary" style={ { fontSize: 13, padding: "9px 22px" } }><Sword size={ 13 } /> Join Battle</Btn>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── LEADERBOARD ────────────────────────────────────── */
+function Leaderboard() {
+  const [ tab, setTab ] = useState( 0 );
+  const leaders = [
+    { r: 1, name: "CodeMasterX", c: "IN", xp: 48250, wins: 847, streak: 45 },
+    { r: 2, name: "AlgoQueen", c: "US", xp: 41200, wins: 723, streak: 38 },
+    { r: 3, name: "PyWarrior", c: "GB", xp: 38900, wins: 691, streak: 29 },
+    { r: 4, name: "RustNinja", c: "CA", xp: 32100, wins: 634, streak: 25 },
+    { r: 5, name: "JSDevil", c: "DE", xp: 28700, wins: 589, streak: 22 },
+  ];
+  const rankColor = ( r ) => r === 1 ? C.amber : r === 2 ? "#94a3b8" : r === 3 ? "#b45309" : C.muted;
+  return (
+    <section style={ { padding: "90px 20px", background: C.surface } }>
+      <div style={ { maxWidth: 800, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 48 } }>
+          <SLabel color={ C.amber }><Trophy size={ 10 } /> Leaderboard</SLabel>
+          <H2 style={ { marginBottom: 14 } }>Top <GradText>Code Warriors</GradText></H2>
+        </div>
+        <div style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 18, overflow: "hidden" } }>
+          <div style={ { padding: "14px 22px", borderBottom: `1px solid ${ C.border }`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 } }>
+            <div style={ { display: "flex", alignItems: "center", gap: 8 } }><Trophy size={ 16 } color={ C.amber } /><span style={ { fontWeight: 700, fontSize: 14 } }>Global Rankings</span></div>
+            <div style={ { display: "flex", gap: 5 } }>
+              { [ "All Time", "This Week", "Today" ].map( ( t, i ) => (
+                <button key={ t } onClick={ () => setTab( i ) } style={ { padding: "5px 13px", borderRadius: 7, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "inherit", background: tab === i ? C.primary : "rgba(255,255,255,.06)", color: tab === i ? "#fff" : C.muted, transition: "all .2s" } }>{ t }</button>
+              ) ) }
+            </div>
+          </div>
+          <div style={ { display: "grid", gridTemplateColumns: "44px 1fr 80px 70px 70px", gap: 8, padding: "8px 22px", borderBottom: `1px solid ${ C.border }` } }>
+            { [ "#", "Developer", "XP", "Wins", "Streak" ].map( ( h, i ) => (
+              <div key={ i } style={ { fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em", textAlign: i > 1 ? "right" : "left" } }>{ h }</div>
+            ) ) }
+          </div>
+          { leaders.map( ( l, i ) => (
+            <div key={ i } style={ { display: "grid", gridTemplateColumns: "44px 1fr 80px 70px 70px", gap: 8, padding: "13px 22px", borderBottom: i < 4 ? `1px solid ${ C.border }` : "none", background: i === 0 ? `${ C.amber }05` : "transparent", transition: "background .2s", cursor: "pointer", alignItems: "center" } }
+              onMouseEnter={ e => e.currentTarget.style.background = "rgba(255,255,255,.03)" }
+              onMouseLeave={ e => e.currentTarget.style.background = i === 0 ? `${ C.amber }05` : "transparent" }>
+              <div style={ { display: "flex", justifyContent: "center" } }>
+                <Trophy size={ 14 } color={ rankColor( l.r ) } />
+              </div>
+              <div style={ { display: "flex", alignItems: "center", gap: 10, minWidth: 0 } }>
+                <div style={ { width: 34, height: 34, borderRadius: 8, flexShrink: 0, background: i === 0 ? `linear-gradient(135deg,${ C.amber },#d97706)` : C.primaryDim, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: i === 0 ? "#000" : C.text } }>{ l.name[ 0 ] }</div>
+                <div style={ { minWidth: 0 } }>
+                  <div style={ { fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }>{ l.name }</div>
+                  <div style={ { fontSize: 10, color: C.muted } }>🌍 { l.c }</div>
+                </div>
+              </div>
+              <div style={ { textAlign: "right", fontWeight: 700, fontSize: 13, color: i === 0 ? C.amber : C.text } }>{ l.xp.toLocaleString() }</div>
+              <div style={ { textAlign: "right", fontSize: 12, color: C.subtle } }>{ l.wins }</div>
+              <div style={ { textAlign: "right", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 3 } }>
+                <Flame size={ 11 } color={ C.amber } /><span style={ { fontSize: 12, color: C.amber, fontWeight: 700 } }>{ l.streak }d</span>
+              </div>
+            </div>
+          ) ) }
+          <div style={ { padding: "13px 22px", textAlign: "center", borderTop: `1px solid ${ C.border }` } }>
+            <Btn variant="outline" style={ { fontSize: 12, padding: "8px 20px" } }>View Full Leaderboard <ChevronRight size={ 13 } /></Btn>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── ROADMAP ────────────────────────────────────────── */
+function Roadmap() {
+  const steps = [
+    { n: "01", title: "Pick a Language", desc: "Choose from 10 languages. Python recommended for beginners.", icon: <Target size={ 16 } />, color: C.green },
+    { n: "02", title: "Learn the Basics", desc: "Variables, control flow, functions — the building blocks explained simply.", icon: <BookOpen size={ 16 } />, color: C.accent },
+    { n: "03", title: "Practice with AI", desc: "Get stuck? Ask Claude AI, ChatGPT, or Gemini for instant help.", icon: <Brain size={ 16 } />, color: C.amber },
+    { n: "04", title: "Solve Challenges", desc: "Progressively harder problems after each lesson. Build problem-solving instincts.", icon: <Code2 size={ 16 } />, color: C.primary },
+    { n: "05", title: "Enter the Arena", desc: "Live battles against real developers. Learn 10x faster under pressure.", icon: <Sword size={ 16 } />, color: C.pink },
+    { n: "06", title: "Land the Job", desc: "Certificates, portfolio, interview prep. Your coding career starts here.", icon: <Trophy size={ 16 } />, color: C.violet },
+  ];
+  return (
+    <section style={ { padding: "90px 20px", background: C.bg } }>
+      <div style={ { maxWidth: 880, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 60 } }>
+          <SLabel color={ C.primary }><TrendingUp size={ 10 } /> Learning Path</SLabel>
+          <H2 style={ { marginBottom: 14 } }>Zero to Hired in<br /><GradText>6 Clear Steps</GradText></H2>
+        </div>
+        <div style={ { position: "relative" } }>
+          <div style={ { position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: `linear-gradient(to bottom,transparent,${ C.primary }50,transparent)`, transform: "translateX(-50%)" } } className="ca-roadmap-dot" />
+          { steps.map( ( s, i ) => (
+            <div key={ i } className="ca-roadmap" style={ { display: "flex", alignItems: "center", gap: 0, marginBottom: 28, flexDirection: i % 2 === 0 ? "row" : "row-reverse" } }>
+              <div style={ { flex: 1, padding: "0 24px", textAlign: i % 2 === 0 ? "right" : "left" } }>
+                <div className="ca-card" style={ { display: "inline-block", background: C.card, border: `1px solid ${ C.border }`, borderRadius: 14, padding: "18px 22px", maxWidth: 320 } }>
+                  <div style={ { fontSize: 10, color: s.color, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 5 } }>Step { s.n }</div>
+                  <div style={ { fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 5 } }>{ s.title }</div>
+                  <div style={ { fontSize: 12, color: C.muted, lineHeight: 1.65 } }>{ s.desc }</div>
+                </div>
+              </div>
+              <div className="ca-roadmap-dot" style={ { width: 40, height: 40, borderRadius: "50%", flexShrink: 0, zIndex: 1, background: `linear-gradient(135deg,${ s.color },${ s.color }80)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: `0 0 0 4px ${ C.bg },0 0 0 5px ${ s.color }40` } }>{ s.icon }</div>
+              <div className="ca-roadmap-spacer" style={ { flex: 1 } } />
+            </div>
+          ) ) }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── TESTIMONIALS ───────────────────────────────────── */
+function Testimonials() {
+  const reviews = [
+    { name: "Arjun Sharma", role: "SDE @ Amazon", text: "The battle mode changed how I think about coding under pressure. Got my Amazon offer 3 months after competing here consistently.", r: 5 },
+    { name: "Priya Singh", role: "CS Student, IIT Delhi", text: "Claude AI explains concepts better than any textbook. I asked it to explain dynamic programming 5 different ways until it clicked.", r: 5 },
+    { name: "Rahul Dev", role: "Freelance Developer", text: "Went from zero to full-stack projects in 8 months. The structured roadmap kept me from getting lost.", r: 5 },
+    { name: "Ananya Patel", role: "Backend Engineer", text: "Free and genuinely better than paid platforms I've tried. The community is extremely helpful and non-toxic.", r: 5 },
+  ];
+  const cos = [ "Google", "Amazon", "Microsoft", "Meta", "Flipkart", "Razorpay", "Atlassian", "Stripe" ];
+  return (
+    <section style={ { padding: "90px 20px", background: C.surface } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 52 } }>
+          <SLabel color={ C.violet }><Star size={ 10 } /> Testimonials</SLabel>
+          <H2 style={ { marginBottom: 14 } }>Developers Who<br /><GradText>Leveled Up with CodeArena</GradText></H2>
+        </div>
+        <div className="ca-2col" style={ { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 48 } }>
+          { reviews.map( ( r, i ) => (
+            <div key={ i } className="ca-card" style={ { background: C.card, border: `1px solid ${ C.border }`, borderRadius: 14, padding: 24 } }>
+              <div style={ { display: "flex", gap: 2, marginBottom: 14 } }>{ Array.from( { length: r.r } ).map( ( _, j ) => <Star key={ j } size={ 13 } fill={ C.amber } color={ C.amber } /> ) }</div>
+              <p style={ { fontSize: 14, color: C.text, lineHeight: 1.78, marginBottom: 18, fontStyle: "italic" } }>"{ r.text }"</p>
+              <div style={ { display: "flex", alignItems: "center", gap: 10 } }>
+                <div style={ { width: 36, height: 36, borderRadius: 9, background: `linear-gradient(135deg,${ C.primary },${ C.pink })`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 } }>{ r.name[ 0 ] }</div>
+                <div>
+                  <div style={ { fontWeight: 700, fontSize: 13, color: C.text } }>{ r.name }</div>
+                  <div style={ { fontSize: 11, color: C.muted } }>{ r.role }</div>
+                </div>
+              </div>
+            </div>
+          ) ) }
+        </div>
+        <div style={ { textAlign: "center" } }>
+          <div style={ { fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 20 } }>Our learners work at</div>
+          <div style={ { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" } }>
+            { cos.map( c => (
+              <div key={ c } style={ { padding: "7px 18px", background: "rgba(255,255,255,.04)", border: `1px solid ${ C.border }`, borderRadius: 9, fontSize: 12, fontWeight: 600, color: C.muted } }>{ c }</div>
+            ) ) }
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── PRICING ────────────────────────────────────────── */
+function Pricing() {
+  const feats = [ "500+ Lessons", "10 Programming Languages", "Claude AI + ChatGPT + Gemini", "Live Battle Arena", "Weekly Tournaments", "Global Leaderboard", "Progress Dashboard", "Verified Certificate", "Developer Community", "Daily Challenges", "Interview Prep Mode", "Project-Based Courses" ];
+  return (
+    <section id="pricing" style={ { padding: "90px 20px", background: C.bg } }>
+      <div style={ { maxWidth: 660, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 48 } }>
+          <SLabel color={ C.green }><Shield size={ 10 } /> Pricing</SLabel>
+          <H2 style={ { marginBottom: 14 } }><GradText>Completely Free.</GradText><br />No Catch. Ever.</H2>
+          <p style={ { color: C.muted, fontSize: 16 } }>No subscription. No paywall. No freemium tricks. Every single feature is free — because great education should be accessible to everyone.</p>
+        </div>
+        <div style={ { background: C.card, border: `2px solid ${ C.primary }`, borderRadius: 22, overflow: "hidden", boxShadow: `0 0 60px rgba(99,102,241,.12)` } }>
+          <div style={ { padding: "30px 36px", borderBottom: `1px solid ${ C.border }`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 } }>
+            <div>
+              <div style={ { fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 5 } }>CodeArena Plan</div>
+              <div style={ { fontSize: 52, fontWeight: 900, color: C.text, letterSpacing: "-2px", lineHeight: 1 } }>₹0</div>
+              <div style={ { fontSize: 13, color: C.muted, marginTop: 5 } }>Forever free · No credit card needed</div>
+            </div>
+            <Btn variant="primary" style={ { fontSize: 15, padding: "13px 32px" } }><UserPlus size={ 16 } /> Create Free Account</Btn>
+          </div>
+          <div style={ { padding: "28px 36px" } }>
+            <div style={ { fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 18 } }>Everything Included</div>
+            <div className="ca-2col" style={ { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px 18px" } }>
+              { feats.map( ( f, i ) => (
+                <div key={ i } style={ { display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: C.text } }>
+                  <Check size={ 14 } color={ C.green } style={ { flexShrink: 0 } } /> { f }
+                </div>
+              ) ) }
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FAQ ────────────────────────────────────────────── */
+function FAQ() {
+  const [ open, setOpen ] = useState( null );
+  const faqs = [
+    { q: "Is CodeArena actually free?", a: "Yes, 100% free. No hidden fees, no premium tier, no credit card required. Every lesson, battle, certificate, and AI feature is free for everyone, always." },
+    { q: "Do I need prior coding experience?", a: "Not at all. Our roadmap starts from absolute zero. If you've never written a single line of code, you're in the right place." },
+    { q: "Which language should I start with?", a: "Python is the best first language — clean, readable, and widely used. For web development, start with HTML/CSS then JavaScript." },
+    { q: "How do the AI mentors work?", a: "During any lesson or challenge, open the AI panel and ask Claude AI, ChatGPT, or Gemini for help. They explain concepts, debug code, and give hints — in real time." },
+    { q: "What is the Battle Arena?", a: "Real-time competitive coding where you solve the same problem as an opponent. Fastest correct solution wins XP and ranking points. It's addictive and highly effective." },
+    { q: "Will I get a certificate?", a: "Yes. Each completed course generates a verifiable digital certificate with a unique ID, shareable on LinkedIn or to employers." },
+  ];
+  return (
+    <section id="faq" style={ { padding: "90px 20px", background: C.surface } }>
+      <div style={ { maxWidth: 700, margin: "0 auto" } }>
+        <div style={ { textAlign: "center", marginBottom: 52 } }>
+          <SLabel color={ C.accent }><MessageSquare size={ 10 } /> FAQ</SLabel>
+          <H2>Common Questions</H2>
+        </div>
+        <div style={ { display: "flex", flexDirection: "column", gap: 9 } }>
+          { faqs.map( ( f, i ) => (
+            <div key={ i } style={ { background: C.card, border: `1px solid ${ open === i ? C.primary : C.border }`, borderRadius: 13, overflow: "hidden", transition: "border-color .2s" } }>
+              <button onClick={ () => setOpen( open === i ? null : i ) }
+                style={ { width: "100%", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", textAlign: "left", gap: 14 } }>
+                <span style={ { fontSize: 14, fontWeight: 600, color: C.text, fontFamily: "inherit" } }>{ f.q }</span>
+                <ChevronDown size={ 15 } color={ C.muted } style={ { flexShrink: 0, transform: open === i ? "rotate(180deg)" : "none", transition: "transform .2s" } } />
+              </button>
+              { open === i && (
+                <div style={ { padding: "0 20px 16px", fontSize: 13, color: C.muted, lineHeight: 1.75, borderTop: `1px solid ${ C.border }`, paddingTop: 13 } }>{ f.a }</div>
+              ) }
+            </div>
+          ) ) }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FINAL CTA ──────────────────────────────────────── */
+function FinalCTA() {
+  return (
+    <section style={ { padding: "90px 20px", background: C.bg } }>
+      <div style={ { maxWidth: 760, margin: "0 auto", textAlign: "center" } }>
+        <div style={ { background: "linear-gradient(135deg,rgba(99,102,241,.1),rgba(244,63,94,.06),rgba(6,182,212,.08))", border: `1px solid rgba(99,102,241,.22)`, borderRadius: 24, padding: "64px 36px", position: "relative", overflow: "hidden" } }>
+          <div style={ { position: "absolute", top: -50, left: "30%", width: 280, height: 280, borderRadius: "50%", background: `radial-gradient(circle,rgba(99,102,241,.1),transparent 65%)`, pointerEvents: "none" } } />
+          <Sword size={ 36 } color={ C.primary } style={ { marginBottom: 20 } } />
+          <H2 style={ { marginBottom: 14 } }>Ready to Start Your<br /><GradText>Coding Journey?</GradText></H2>
+          <p style={ { fontSize: 16, color: C.muted, marginBottom: 32, maxWidth: 460, margin: "0 auto 32px", lineHeight: 1.75 } }>
+            Join 52,000+ developers learning, battling, and growing on CodeArena — completely free, right now.
+          </p>
+          <div style={ { display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 22 } }>
+            <Btn variant="primary" style={ { fontSize: 15, padding: "13px 32px" } }><UserPlus size={ 16 } /> Create Free Account</Btn>
+            <Btn variant="outline" style={ { fontSize: 15, padding: "13px 32px" } }><Play size={ 16 } /> Watch Demo</Btn>
+          </div>
+          <div style={ { display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap" } }>
+            { [ "No credit card", "Instant access", "Free forever" ].map( t => (
+              <div key={ t } style={ { display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: C.muted } }>
+                <Check size={ 12 } color={ C.green } /> { t }
+              </div>
+            ) ) }
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FOOTER ─────────────────────────────────────────── */
+function Footer() {
+  const cols = [
+    { title: "Platform", links: [ "Courses", "Battle Arena", "Leaderboard", "AI Mentor", "Certificates" ] },
+    { title: "Languages", links: [ "Python", "JavaScript", "Java", "C++", "TypeScript" ] },
+    { title: "Company", links: [ "About", "Blog", "Careers", "Contact", "Privacy" ] },
+    { title: "Community", links: [ "Discord", "Forum", "GitHub", "Twitter", "YouTube" ] },
+  ];
+  return (
+    <footer style={ { background: C.surface, borderTop: `1px solid ${ C.border }`, padding: "56px 20px 28px" } }>
+      <div style={ { maxWidth: 1100, margin: "0 auto" } }>
+        <div className="ca-footer-grid" style={ { display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 36, marginBottom: 44 } }>
+          <div>
+            <div style={ { display: "flex", alignItems: "center", gap: 9, marginBottom: 14 } }>
+              <div style={ { width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg,${ C.primary },${ C.pink })`, display: "flex", alignItems: "center", justifyContent: "center" } }>
+                <Sword size={ 15 } color="#fff" />
+              </div>
+              <span style={ { fontWeight: 800, fontSize: 17, letterSpacing: "-.5px" } }>Code<span style={ { color: C.accent } }>Arena</span></span>
+            </div>
+            <p style={ { fontSize: 13, color: C.muted, lineHeight: 1.8, maxWidth: 240, marginBottom: 18 } }>
+              The world's most advanced free coding platform. Battle, learn, and grow — together.
+            </p>
+            <div style={ { display: "flex", gap: 7 } }>
+              { [ <Twitter size={ 15 } />, <Github size={ 15 } />, <Linkedin size={ 15 } />, <Youtube size={ 15 } /> ].map( ( ic, i ) => (
+                <div key={ i } className="ca-link" style={ { width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,.05)", border: `1px solid ${ C.border }`, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, cursor: "pointer" } }>{ ic }</div>
+              ) ) }
+            </div>
+          </div>
+          { cols.map( ( col, i ) => (
+            <div key={ i }>
+              <div style={ { fontWeight: 700, fontSize: 12, color: C.text, marginBottom: 14, textTransform: "uppercase", letterSpacing: ".06em" } }>{ col.title }</div>
+              { col.links.map( l => (
+                <div key={ l } className="ca-link" style={ { fontSize: 13, color: C.muted, marginBottom: 9 } }>{ l }</div>
+              ) ) }
+            </div>
+          ) ) }
+        </div>
+        <div style={ { borderTop: `1px solid ${ C.border }`, paddingTop: 22, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 } }>
+          <div style={ { fontSize: 12, color: C.muted } }>© 2026 CodeArena. Built for developers everywhere.</div>
+          <div style={ { display: "flex", gap: 18 } }>
+            { [ "Terms", "Privacy", "Cookies" ].map( l => (
+              <span key={ l } className="ca-link" style={ { fontSize: 12, color: C.muted } }>{ l }</span>
+            ) ) }
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+export default function App() {
+  return (
+    <div style={ { background: C.bg, color: C.text, minHeight: "100vh", fontFamily: "'DM Sans',sans-serif" } }>
+      <Navbar />
+      <Hero />
+      <Stats />
+      <AIDashboard />
+      <AnalyticsDashboard />
+      <Features />
+      <Languages />
+      <Battle />
+      <Leaderboard />
+      <Roadmap />
+      <Testimonials />
+      <Pricing />
+      <FAQ />
+      <FinalCTA />
+      <Footer />
     </div>
   );
 }
