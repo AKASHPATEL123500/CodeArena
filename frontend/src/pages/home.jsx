@@ -521,6 +521,9 @@ function Languages() {
   const [ hov, setHov ] = useState( null );
   const langs = [
     { name: "JavaScript", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
+    { name: "Node Js", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
+    { name: "Express js", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
+    { name: "React js", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
     { name: "Python", icon: <Terminal size={ 20 } />, color: "#3776ab", lessons: 45, lvl: "Beginner → Pro" },
     { name: "Java", icon: <Cpu size={ 20 } />, color: "#f89820", lessons: 40, lvl: "Intermediate" },
     { name: "C++", icon: <Zap size={ 20 } />, color: "#00599c", lessons: 35, lvl: "Intermediate" },
@@ -530,6 +533,9 @@ function Languages() {
     { name: "SQL", icon: <Database size={ 20 } />, color: "#f29111", lessons: 25, lvl: "Beginner → Pro" },
     { name: "C", icon: <GitBranch size={ 20 } />, color: "#a8b9cc", lessons: 30, lvl: "Intermediate" },
     { name: "HTML/CSS", icon: <Globe size={ 20 } />, color: "#e34f26", lessons: 35, lvl: "Beginner" },
+    { name: "AI ML", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
+    { name: "Projects Guide", icon: <Code2 size={ 20 } />, color: "#f7df1e", lessons: 50, lvl: "Beginner → Pro" },
+
   ];
   return (
     <section id="languages" style={ { padding: "90px 20px", background: C.surface } }>
@@ -796,7 +802,7 @@ function Pricing() {
               <div style={ { fontSize: 52, fontWeight: 900, color: C.text, letterSpacing: "-2px", lineHeight: 1 } }>₹0</div>
               <div style={ { fontSize: 13, color: C.muted, marginTop: 5 } }>Forever free · No credit card needed</div>
             </div>
-            <Btn variant="primary" style={ { fontSize: 15, padding: "13px 32px" } }><UserPlus size={ 16 } /> Create Free Account</Btn>
+            <Btn variant="primary" style={ { fontSize: 15, padding: "13px 32px" } } ><UserPlus size={ 16 } /> Create Free Account</Btn>
           </div>
           <div style={ { padding: "28px 36px" } }>
             <div style={ { fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 18 } }>Everything Included</div>

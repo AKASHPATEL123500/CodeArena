@@ -1,1 +1,43 @@
 @import "tailwindcss";
+
+
+/* src/index.css or App.css */
+
+/* Improve code block styling */
+pre {
+    margin: 0;
+    padding: 1rem;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+}
+
+pre code {
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+/* Inline code */
+code {
+    font-family: 'Fira Code', 'Courier New', monospace;
+}
+
+/* Scrollbar for code blocks */
+pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}

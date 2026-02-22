@@ -40,8 +40,21 @@ export const htmlCourse = {
                     type: "code",
                     heading: "Your first HTML",
                     language: "html",
-                    code: `<h1>Hello, World!</h1>
-<p>This is my first webpage.</p>`,
+                    code: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Hello, World!</h1>
+    <p>This is my first webpage.</p>
+</body>
+</html>
+
+
+`,
                     output: {
                         type: "preview",
                         content: `<div style="font-family:serif;padding:8px"><h1 style="font-size:28px;font-weight:bold;margin-bottom:8px">Hello, World!</h1><p style="font-size:16px">This is my first webpage.</p></div>`,

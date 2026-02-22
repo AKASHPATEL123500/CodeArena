@@ -14,6 +14,7 @@ import FileTest from "./components/fileTest"
 import CodeArenaImproved from "./pages/home"
 import Html from "./pages/html"
 import Learnings from "./pages/learing"
+import AIChat from "./pages/Chat"
 
 
 function App() {
@@ -34,7 +35,7 @@ function App() {
         <Route path="/forgot-password" element={ <Navigate to="/send-otp?type=forgot" replace /> } />
         <Route path="/html" element={ <Html /> } />
         <Route path="/all-courses-free" element={ <Learnings /> } />
-
+        <Route path="/ai-chat" element={ <AIChat /> } />
         {/* Protected routes */ }
         <Route
           path="/profile"

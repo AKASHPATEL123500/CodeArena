@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="hi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Deep Dive — Variables & Memory</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --surface2: #16161f;
+            --border: #1e1e2e;
+            --accent: #7c6af7;
+            --accent2: #f7a26a;
+            --accent3: #6af7b8;
+            --accent4: #f76a8a;
+            --text: #e8e8f0;
+            --text-muted: #7070a0;
+            --text-dim: #3a3a5a;
+            --yellow: #f7e06a;
+            --blue: #6ab0f7;
+            --green: #6af79a;
+            --red: #f76a6a;
+            --pink: #e06af7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, #0a0a0f 0%, #0d0820 50%, #0a0a0f 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 60px 40px 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(124, 106, 247, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(247, 162, 106, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .lesson-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(124, 106, 247, 0.12);
+            border: 1px solid rgba(124, 106, 247, 0.25);
+            color: var(--accent);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #b0a8f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero .subtitle {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-bottom: 24px;
+        }
+
+        .meta-pills {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* CONTENT */
+        .content {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* SECTION BLOCKS */
+        .block {
+            margin-bottom: 36px;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ANALOGY */
+        .analogy-block {
+            background: linear-gradient(135deg, rgba(124, 106, 247, 0.06), rgba(106, 175, 247, 0.04));
+            border: 1px solid rgba(124, 106, 247, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+        }
+
+        .block-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        .block-heading {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* MEMORY DIAGRAM */
+        .memory-diagram {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .memory-box {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .memory-box-header {
+            padding: 10px 16px;
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stack-header {
+            background: rgba(106, 247, 154, 0.12);
+            color: var(--green);
+        }
+
+        .heap-header {
+            background: rgba(247, 162, 106, 0.12);
+            color: var(--accent2);
+        }
+
+        .memory-box-body {
+            padding: 14px 16px;
+            background: var(--surface);
+        }
+
+        .memory-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .memory-row:last-child {
+            border-bottom: none;
+        }
+
+        .mem-addr {
+            color: var(--text-dim);
+            width: 70px;
+        }
+
+        .mem-name {
+            color: var(--blue);
+        }
+
+        .mem-val {
+            color: var(--yellow);
+            margin-left: auto;
+        }
+
+        .mem-arrow {
+            color: var(--accent);
+            font-size: 16px;
+        }
+
+        /* CONCEPT BLOCK */
+        .concept-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        /* DEEP DIVE */
+        .deep-dive-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+        }
+
+        /* COMPARISON TABLE */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            background: var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+
+        .compare-cell {
+            background: var(--surface2);
+            padding: 12px 16px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .compare-cell.header {
+            background: rgba(124, 106, 247, 0.1);
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Syne', sans-serif;
+        }
+
+        .yes {
+            color: var(--green);
+        }
+
+        .no {
+            color: var(--red);
+        }
+
+        .warn {
+            color: var(--yellow);
+        }
+
+        /* CODE BLOCK */
+        .code-block {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin: 20px 0;
+        }
+
+        .code-header {
+            background: #0d0d16;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-r {
+            background: #ff5f57;
+        }
+
+        .dot-y {
+            background: #febc2e;
+        }
+
+        .dot-g {
+            background: #28c840;
+        }
+
+        .code-lang {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .code-body {
+            background: #0d0d18;
+            padding: 24px;
+            overflow-x: auto;
+        }
+
+        .code-body pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13.5px;
+            line-height: 1.8;
+            white-space: pre;
+        }
+
+        /* SYNTAX COLORS */
+        .kw {
+            color: #c792ea;
+        }
+
+        /* keyword */
+        .fn {
+            color: #82aaff;
+        }
+
+        /* function */
+        .str {
+            color: #c3e88d;
+        }
+
+        /* string */
+        .num {
+            color: #f78c6c;
+        }
+
+        /* number */
+        .cmt {
+            color: #546e7a;
+            font-style: italic;
+        }
+
+        /* comment */
+        .var {
+            color: #89ddff;
+        }
+
+        /* variable */
+        .op {
+            color: #89ddff;
+        }
+
+        /* operator */
+        .punc {
+            color: #bfc7d5;
+        }
+
+        /* punctuation */
+        .arr {
+            color: #f78c6c;
+        }
+
+        /* array */
+        .log {
+            color: #ffcb6b;
+        }
+
+        /* console */
+        .prop {
+            color: #f07178;
+        }
+
+        /* property */
+        .good {
+            color: #c3e88d;
+        }
+
+        /* good output */
+        .bad {
+            color: #f07178;
+        }
+
+        /* bad/error output */
+        .warn-c {
+            color: #ffcb6b;
+        }
+
+        /* warning */
+
+        /* OUTPUT */
+        .output-block {
+            border-top: 1px solid var(--border);
+            background: #080812;
+            padding: 16px 24px;
+        }
+
+        .output-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .output-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        .out-prompt {
+            color: var(--text-dim);
+        }
+
+        .out-result {}
+
+        /* EXPLANATION BOX */
+        .explanation {
+            background: rgba(106, 175, 247, 0.05);
+            border: 1px solid rgba(106, 175, 247, 0.12);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .explanation strong {
+            color: var(--blue);
+        }
+
+        /* ERROR ALERT */
+        .error-alert {
+            background: rgba(247, 106, 106, 0.05);
+            border: 1px solid rgba(247, 106, 106, 0.2);
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .error-alert .block-heading {
+            color: var(--red);
+        }
+
+        /* WARNING */
+        .warning-alert {
+            background: rgba(247, 224, 106, 0.05);
+            border: 1px solid rgba(247, 224, 106, 0.15);
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .warning-alert .block-heading {
+            color: var(--yellow);
+        }
+
+        /* PRO TIP */
+        .pro-tip {
+            background: rgba(106, 247, 154, 0.05);
+            border: 1px solid rgba(106, 247, 154, 0.15);
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .pro-tip .block-heading {
+            color: var(--green);
+        }
+
+        /* SUMMARY */
+        .summary-block {
+            background: linear-gradient(135deg, rgba(124, 106, 247, 0.08), rgba(106, 247, 154, 0.04));
+            border: 1px solid rgba(124, 106, 247, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+        }
+
+        .mastery-point {
+            display: flex;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(124, 106, 247, 0.1);
+            font-size: 14px;
+        }
+
+        .mastery-point:last-child {
+            border-bottom: none;
+        }
+
+        .point-num {
+            width: 24px;
+            height: 24px;
+            background: rgba(124, 106, 247, 0.15);
+            border: 1px solid rgba(124, 106, 247, 0.3);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* MISTAKE BOX */
+        .mistake-vs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .mistake-box {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .mistake-box-header {
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .wrong-header {
+            background: rgba(247, 106, 106, 0.12);
+            color: var(--red);
+        }
+
+        .right-header {
+            background: rgba(106, 247, 154, 0.12);
+            color: var(--green);
+        }
+
+        .mistake-body {
+            background: #0d0d18;
+            padding: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+        }
+
+        /* SECTION DIVIDER */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 40px 0 30px;
+        }
+
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* CALLOUT */
+        .callout {
+            display: flex;
+            gap: 14px;
+            padding: 16px 20px;
+            background: var(--surface2);
+            border-radius: 10px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .callout-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* QUIZ */
+        .quiz-block {
+            background: var(--surface);
+            border: 1px solid rgba(124, 106, 247, 0.2);
+            border-radius: 14px;
+            padding: 24px;
+        }
+
+        .quiz-q {
+            font-family: 'Syne', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .quiz-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--accent);
+            background: rgba(124, 106, 247, 0.07);
+        }
+
+        .quiz-option.correct {
+            border-color: var(--green);
+            background: rgba(106, 247, 154, 0.07);
+            color: var(--green);
+        }
+
+        .quiz-option.wrong {
+            border-color: var(--red);
+            background: rgba(247, 106, 106, 0.07);
+            color: var(--red);
+        }
+
+        .quiz-feedback {
+            display: none;
+            margin-top: 14px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .quiz-feedback.show {
+            display: block;
+        }
+
+        .quiz-feedback.pass {
+            background: rgba(106, 247, 154, 0.08);
+            border: 1px solid rgba(106, 247, 154, 0.2);
+            color: var(--green);
+        }
+
+        .quiz-feedback.fail {
+            background: rgba(247, 106, 106, 0.08);
+            border: 1px solid rgba(247, 106, 106, 0.2);
+            color: var(--red);
+        }
+
+        /* INLINE CODE */
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(124, 106, 247, 0.1);
+            color: var(--accent);
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.88em;
+        }
+
+        /* TDZ VISUAL */
+        .tdz-visual {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .tdz-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 8px;
+        }
+
+        .tdz-line-num {
+            color: var(--text-dim);
+            width: 30px;
+        }
+
+        .tdz-danger {
+            background: rgba(247, 106, 106, 0.08);
+            border: 1px solid rgba(247, 106, 106, 0.15);
+        }
+
+        .tdz-safe {
+            background: rgba(106, 247, 154, 0.05);
+            border: 1px solid rgba(106, 247, 154, 0.12);
+        }
+
+        .tdz-neutral {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+
+        .tdz-tag {
+            margin-left: auto;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .tag-danger {
+            background: rgba(247, 106, 106, 0.15);
+            color: var(--red);
+        }
+
+        .tag-safe {
+            background: rgba(106, 247, 154, 0.12);
+            color: var(--green);
+        }
+
+        .tag-tdz {
+            background: rgba(247, 224, 106, 0.12);
+            color: var(--yellow);
+        }
+
+        .tag-ok {
+            background: rgba(106, 175, 247, 0.12);
+            color: var(--blue);
+        }
+
+        p {
+            margin-bottom: 12px;
+        }
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            .memory-diagram {
+                grid-template-columns: 1fr;
+            }
+
+            .compare-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .mistake-vs {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                padding: 40px 20px 36px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="lesson-tag">📘 Lesson 02 · JavaScript Fundamentals</div>
+        <h1>Variables & Memory Storage</h1>
+        <p class="subtitle">Stack, Heap, Scope, TDZ — sab kuch ek baar mein clear karo</p>
+        <div class="meta-pills">
+            <span class="pill">⏱ 20 min read</span>
+            <span class="pill">🧠 Deep Dive</span>
+            <span class="pill">⚡ Interview Ready</span>
+            <span class="pill">🇮🇳 Hinglish</span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- ═══ SECTION 1: ANALOGY ═══ -->
+        <div class="block analogy-block">
+            <div class="block-label" style="color:var(--accent)">🏗️ Analogy · Pehle samjho, phir code</div>
+            <div class="block-heading">JavaScript Engine — Ek Architect ka Office</div>
+            <p>Imagine karo JavaScript Engine ek bahaut bada architect ka office hai. Is office mein do jagah hain:</p>
+            <div class="memory-diagram">
+                <div class="memory-box">
+                    <div class="memory-box-header stack-header">📋 STACK — Turant kaam ki desk</div>
+                    <div class="memory-box-body" style="font-size:13px;">
+                        <p style="color:var(--green); font-family:'JetBrains Mono',monospace; margin-bottom:10px;">
+                            Primitives yahan rehte hain</p>
+                        <div class="memory-row">
+                            <span class="mem-addr">0x001</span>
+                            <span class="mem-name">x</span>
+                            <span class="mem-val">10</span>
+                        </div>
+                        <div class="memory-row">
+                            <span class="mem-addr">0x002</span>
+                            <span class="mem-name">name</span>
+                            <span class="mem-val">"Rahul"</span>
+                        </div>
+                        <div class="memory-row">
+                            <span class="mem-addr">0x003</span>
+                            <span class="mem-name">flag</span>
+                            <span class="mem-val">true</span>
+                        </div>
+                        <p style="margin-top:12px; color:var(--text-muted); font-size:12px;">✅ Fast · Fixed Size ·
+                            Auto-cleanup</p>
+                    </div>
+                </div>
+                <div class="memory-box">
+                    <div class="memory-box-header heap-header">🏬 HEAP — Bada storeroom</div>
+                    <div class="memory-box-body" style="font-size:13px;">
+                        <p style="color:var(--accent2); font-family:'JetBrains Mono',monospace; margin-bottom:10px;">
+                            Objects & Arrays yahan rehte hain</p>
+                        <div class="memory-row">
+                            <span class="mem-addr">0xA01</span>
+                            <span class="mem-name">user</span>
+                            <span class="mem-val">{name:"Rahul"}</span>
+                        </div>
+                        <div class="memory-row">
+                            <span class="mem-addr">0xA02</span>
+                            <span class="mem-name">nums</span>
+                            <span class="mem-val">[1, 2, 3]</span>
+                        </div>
+                        <div class="memory-row">
+                            <span class="mem-addr">0xA03</span>
+                            <span class="mem-name">config</span>
+                            <span class="mem-val">{...}</span>
+                        </div>
+                        <p style="margin-top:12px; color:var(--text-muted); font-size:12px;">⚠️ Slower · Dynamic · GC
+                            needed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="callout">
+                <span class="callout-icon">💡</span>
+                <span><strong style="color:var(--yellow)">Key Insight:</strong> Jab aap koi variable banate ho, JS
+                    engine decide karta hai ki data Stack mein rakhe ya Heap mein. Primitive values = Stack.
+                    Objects/Arrays = Heap. Simple.</span>
+            </div>
+        </div>
+
+        <!-- ═══ SECTION 2: WHY LET & CONST ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Concept 1</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block concept-block">
+            <div class="block-label" style="color:var(--accent)">Evolution · 2015 se pehle kya tha?</div>
+            <div class="block-heading">🚀 `var` se `let`/`const` tak ka Safar</div>
+            <p>JavaScript 2015 (ES6) se pehle sirf <code>var</code> tha. Iske do bade problems the:</p>
+            <div class="compare-grid">
+                <div class="compare-cell header">Property</div>
+                <div class="compare-cell header" style="color:var(--red)">var ❌</div>
+                <div class="compare-cell header" style="color:var(--green)">let / const ✅</div>
+
+                <div class="compare-cell">Scope</div>
+                <div class="compare-cell no">Function Scope</div>
+                <div class="compare-cell yes">Block Scope { }</div>
+
+                <div class="compare-cell">Hoisting</div>
+                <div class="compare-cell warn">Hota hai (undefined)</div>
+                <div class="compare-cell yes">TDZ protect karta hai</div>
+
+                <div class="compare-cell">Re-declare</div>
+                <div class="compare-cell no">Same scope mein kar sakte ho</div>
+                <div class="compare-cell yes">Error aata hai (safe!)</div>
+
+                <div class="compare-cell">Global leak</div>
+                <div class="compare-cell no">window.xyz ban jata hai</div>
+                <div class="compare-cell yes">Global nahi banta</div>
+
+                <div class="compare-cell">Use karo?</div>
+                <div class="compare-cell no">🚫 Avoid karo</div>
+                <div class="compare-cell yes">✅ Always use</div>
+            </div>
+            <div class="callout">
+                <span class="callout-icon">🎯</span>
+                <span><strong style="color:var(--accent3)">Rule of thumb:</strong> Default pe <code>const</code> use
+                    karo. Agar value change karni ho toh <code>let</code>. <code>var</code>? Bhool jao.</span>
+            </div>
+        </div>
+
+        <!-- ═══ SECTION 3: PRIMITIVES vs REFERENCE ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Concept 2 · The Big Secret</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block deep-dive-block">
+            <div class="block-label" style="color:var(--pink)">🔬 Deep Dive · Ye interview mein zaroor aata hai</div>
+            <div class="block-heading">Primitive vs Reference Types</div>
+            <p>JS mein data save karne ke <strong>do tarike</strong> hain. Ye samajhna baat hai sabse important concept:
+            </p>
+
+            <div class="mistake-vs" style="margin-top:20px;">
+                <div class="mistake-box">
+                    <div class="mistake-box-header right-header">📋 Primitives (Stack mein)</div>
+                    <div class="mistake-body">
+                        <span class="kw">Number</span>, <span class="kw">String</span>,<br>
+                        <span class="kw">Boolean</span>, <span class="kw">null</span>,<br>
+                        <span class="kw">undefined</span>, <span class="kw">Symbol</span><br><br>
+                        <span class="cmt">// Copy = Naya value</span><br>
+                        <span class="var">a</span> <span class="op">=</span> <span class="num">10</span> <span
+                            class="op">→</span> Stack[0x01]<br>
+                        <span class="var">b</span> <span class="op">=</span> <span class="var">a</span> <span
+                            class="op">→</span> Stack[0x02]
+                    </div>
+                </div>
+                <div class="mistake-box">
+                    <div class="mistake-box-header wrong-header">🏬 References (Heap mein)</div>
+                    <div class="mistake-body">
+                        <span class="kw">Object</span>, <span class="kw">Array</span>,<br>
+                        <span class="kw">Function</span><br><br>
+                        <span class="cmt">// Copy = Sirf address copy</span><br>
+                        <span class="var">obj1</span> <span class="op">→</span> Heap[0xA01] <span
+                            class="cmt">←──┐</span><br>
+                        <span class="var">obj2</span> <span class="op">=</span> <span class="var">obj1</span> → <span
+                            class="bad">Same 0xA01!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CODE EXAMPLE 1 -->
+        <div class="block">
+            <div class="block-label" style="color:var(--accent2)">💻 Code Example 1 · Primitive Copy</div>
+            <div class="block-heading">Stack Copy — Safe Hai</div>
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · primitive-copy.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">// ✅ Primitive Copy — Value copy hoti hai</span>
+<span class="kw">let</span> <span class="var">x</span> <span class="op">=</span> <span class="num">10</span><span class="punc">;</span>           <span class="cmt">// Stack mein x = 10</span>
+<span class="kw">let</span> <span class="var">y</span> <span class="op">=</span> <span class="var">x</span><span class="punc">;</span>            <span class="cmt">// Stack mein y = 10 (NAYA copy)</span>
+
+<span class="var">y</span> <span class="op">=</span> <span class="num">20</span><span class="punc">;</span>               <span class="cmt">// sirf y badla, x nahi</span>
+
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">x</span><span class="punc">);</span>       <span class="cmt">// 10  ← Same hai!</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">y</span><span class="punc">);</span>       <span class="cmt">// 20</span></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output</div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="good">10</span> <span
+                            class="cmt" style="font-family:'JetBrains Mono',monospace;font-size:12px;">← x unchanged
+                            ✅</span></div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="good">20</span></div>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>Kyun?</strong> Jab aapne <code>y = x</code> likha, JS ne Stack mein ek <strong>bilkul naya
+                    box</strong> banaya aur usme <code>10</code> copy kar diya. Dono boxes independent hain. Ek change
+                karne se doosra nahi badhta.
+            </div>
+        </div>
+
+        <!-- CODE EXAMPLE 2 - Reference Trap -->
+        <div class="block">
+            <div class="block-label" style="color:var(--red)">⚠️ Code Example 2 · Reference Trap (Interview Special!)
+            </div>
+            <div class="block-heading">Heap Address Copy — DANGER Zone</div>
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · reference-trap.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">// 🚨 Reference Copy — Address copy hota hai!</span>
+<span class="kw">let</span> <span class="var">arr1</span> <span class="op">=</span> <span class="punc">[</span><span class="num">1</span><span class="punc">,</span> <span class="num">2</span><span class="punc">,</span> <span class="num">3</span><span class="punc">];</span>       <span class="cmt">// Heap mein bana 0xA01</span>
+<span class="kw">let</span> <span class="var">arr2</span> <span class="op">=</span> <span class="var">arr1</span><span class="punc">;</span>           <span class="cmt">// arr2 ne 0xA01 pakad liya!</span>
+                              <span class="cmt">// Naya array NAHI bana</span>
+
+<span class="var">arr2</span><span class="punc">.</span><span class="fn">push</span><span class="punc">(</span><span class="num">4</span><span class="punc">);</span>              <span class="cmt">// 0xA01 pe change hua</span>
+
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">arr1</span><span class="punc">);</span>         <span class="cmt">// [1,2,3,4] ← SHOCK! 😱</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">arr2</span><span class="punc">);</span>         <span class="cmt">// [1,2,3,4] ← Same!</span>
+
+<span class="cmt">// ────────────────────────────────────────────</span>
+<span class="cmt">// ✅ SOLUTION: Spread Operator se true copy</span>
+<span class="cmt">// ────────────────────────────────────────────</span>
+<span class="kw">let</span> <span class="var">arr3</span> <span class="op">=</span> <span class="punc">[</span><span class="num">1</span><span class="punc">,</span> <span class="num">2</span><span class="punc">,</span> <span class="num">3</span><span class="punc">];</span>
+<span class="kw">let</span> <span class="var">arr4</span> <span class="op">=</span> <span class="punc">[...</span><span class="var">arr3</span><span class="punc">];</span>      <span class="cmt">// Naya array banata hai!</span>
+
+<span class="var">arr4</span><span class="punc">.</span><span class="fn">push</span><span class="punc">(</span><span class="num">4</span><span class="punc">);</span>
+
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">arr3</span><span class="punc">);</span>         <span class="cmt">// [1,2,3] ← Safe! ✅</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">arr4</span><span class="punc">);</span>         <span class="cmt">// [1,2,3,4]</span></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output</div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="bad">[1, 2, 3, 4]</span>
+                        <span class="cmt" style="font-family:'JetBrains Mono',monospace;font-size:12px;">← arr1 bhi
+                            badal gaya! 😱</span></div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="bad">[1, 2, 3, 4]</span>
+                    </div>
+                    <div class="output-line" style="margin-top:8px;"><span class="out-prompt">&gt;</span> <span
+                            class="good">[1, 2, 3]</span> <span class="cmt"
+                            style="font-family:'JetBrains Mono',monospace;font-size:12px;">← Spread se safe ✅</span>
+                    </div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="good">[1, 2, 3, 4]</span>
+                    </div>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>Kyun hua?</strong> <code>arr2 = arr1</code> karte time JS ne Heap mein naya array nahi banaya.
+                Dono variables ek hi memory address <code>0xA01</code> pe point kar rahe hain. Matlab <code>arr2</code>
+                sirf ek <strong>alias (doosra naam)</strong> hai us array ka. Ek se change karo, dono mein
+                dikhega.<br><br>
+                <strong>Fix:</strong> <code>[...arr3]</code> ya <code>Array.from(arr3)</code> ya
+                <code>arr3.slice()</code> se ek genuinely naya array banta hai.
+            </div>
+        </div>
+
+        <!-- Object deep copy -->
+        <div class="block">
+            <div class="block-label" style="color:var(--accent2)">💻 Code Example 3 · Object Copy Trap</div>
+            <div class="block-heading">Object bhi Same Trap Karta Hai</div>
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · object-copy.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">// 🚨 Object Reference Trap</span>
+<span class="kw">let</span> <span class="var">user1</span> <span class="op">=</span> <span class="punc">{</span> <span class="prop">name</span><span class="punc">:</span> <span class="str">"Rahul"</span><span class="punc">,</span> <span class="prop">age</span><span class="punc">:</span> <span class="num">20</span> <span class="punc">};</span>
+<span class="kw">let</span> <span class="var">user2</span> <span class="op">=</span> <span class="var">user1</span><span class="punc">;</span>          <span class="cmt">// Sirf address copy</span>
+
+<span class="var">user2</span><span class="punc">.</span><span class="prop">name</span> <span class="op">=</span> <span class="str">"Priya"</span><span class="punc">;</span>
+
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">user1</span><span class="punc">.</span><span class="prop">name</span><span class="punc">);</span>   <span class="cmt">// "Priya" ← user1 bhi badla! 😱</span>
+
+<span class="cmt">// ✅ Shallow Copy (1 level deep)</span>
+<span class="kw">let</span> <span class="var">user3</span> <span class="op">=</span> <span class="punc">{</span><span class="op">...</span><span class="var">user1</span><span class="punc">};</span>     <span class="cmt">// Object spread</span>
+<span class="cmt">// ya</span>
+<span class="kw">let</span> <span class="var">user4</span> <span class="op">=</span> <span class="kw">Object</span><span class="punc">.</span><span class="fn">assign</span><span class="punc">({},</span> <span class="var">user1</span><span class="punc">);</span>
+
+<span class="cmt">// ✅ Deep Copy (nested objects ke liye)</span>
+<span class="kw">let</span> <span class="var">user5</span> <span class="op">=</span> <span class="kw">JSON</span><span class="punc">.</span><span class="fn">parse</span><span class="punc">(</span><span class="kw">JSON</span><span class="punc">.</span><span class="fn">stringify</span><span class="punc">(</span><span class="var">user1</span><span class="punc">));</span></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output</div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="bad">"Priya"</span> <span
+                            class="cmt" style="font-family:'JetBrains Mono',monospace;font-size:12px;">← user1 bhi badal
+                            gaya 😱</span></div>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>Shallow vs Deep Copy:</strong> <code>{...obj}</code> sirf <strong>1 level deep</strong> copy
+                karta hai. Agar object ke andar object ho (nested), toh woh phir bhi reference rahega. Iske liye
+                <code>JSON.parse(JSON.stringify())</code> use karo — lekin ye methods aur functions ko copy nahi karta.
+            </div>
+        </div>
+
+        <!-- ═══ ERROR SECTION ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Common Mistakes</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block error-alert">
+            <div class="block-label" style="color:var(--red)">🚫 Common Mistake #1</div>
+            <div class="block-heading">Variable Shadowing — var se scope leak</div>
+            <p>Ye beginners ki sabse common galti hai — ek hi naam ka variable bahar aur andar block mein bana dena.</p>
+        </div>
+
+        <div class="block">
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · shadowing-bug.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">// 🚨 var Shadowing Trap</span>
+<span class="kw">var</span> <span class="var">count</span> <span class="op">=</span> <span class="num">100</span><span class="punc">;</span>        <span class="cmt">// Global var</span>
+
+<span class="punc">{</span>
+  <span class="kw">var</span> <span class="var">count</span> <span class="op">=</span> <span class="num">10</span><span class="punc">;</span>       <span class="cmt">// 🚨 var { } nahi maanta!</span>
+  <span class="kw">let</span> <span class="var">score</span> <span class="op">=</span> <span class="num">200</span><span class="punc">;</span>      <span class="cmt">// Block scoped — safe</span>
+<span class="punc">}</span>
+
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">count</span><span class="punc">);</span>    <span class="cmt">// 10 ← 100 kahan gaya?! 😱</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">score</span><span class="punc">);</span>    <span class="cmt">// ReferenceError ← Safe! ✅</span>
+
+<span class="cmt">// ─────────────────────────────────────────</span>
+<span class="cmt">// ✅ let use karo — Shadowing controlled</span>
+<span class="cmt">// ─────────────────────────────────────────</span>
+<span class="kw">let</span> <span class="var">total</span> <span class="op">=</span> <span class="num">100</span><span class="punc">;</span>
+
+<span class="punc">{</span>
+  <span class="kw">let</span> <span class="var">total</span> <span class="op">=</span> <span class="num">10</span><span class="punc">;</span>       <span class="cmt">// Intentional shadowing (allowed)</span>
+  <span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">total</span><span class="punc">);</span>  <span class="cmt">// 10 (block wala)</span>
+<span class="punc">}</span>
+
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">total</span><span class="punc">);</span>    <span class="cmt">// 100 ← Outer safe hai ✅</span></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output</div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="bad">10</span> <span
+                            class="cmt" style="font-family:'JetBrains Mono',monospace;font-size:12px;">← var ne outer
+                            variable overwrite kiya 🚨</span></div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="bad">ReferenceError:
+                            score is not defined</span></div>
+                    <div class="output-line" style="margin-top:8px;"><span class="out-prompt">&gt;</span> <span
+                            class="good">10</span></div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="good">100</span> <span
+                            class="cmt" style="font-family:'JetBrains Mono',monospace;font-size:12px;">← let se outer
+                            safe raha ✅</span></div>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>Kyun hua?</strong> <code>var</code> ko curly braces <code>{ }</code> ki koi parwah nahi. Wo sirf
+                function boundary maanta hai. Isliye block ke andar <code>var count = 10</code> karne se bahar wala
+                <code>count</code> bhi badal gaya. <code>let</code> ke saath aisa nahi hota — block ke andar ka variable
+                block ke andar hi rehta hai.
+            </div>
+        </div>
+
+        <!-- ═══ MISTAKE #2: HOISTING ═══ -->
+        <div class="block error-alert">
+            <div class="block-label" style="color:var(--red)">🚫 Common Mistake #2</div>
+            <div class="block-heading">Hoisting Confusion — `var` use karne se pehle access</div>
+            <p>Naye developers sochte hain variable declare karne se pehle use nahi kar sakte — <code>var</code> ke
+                saath ye galat hai.</p>
+        </div>
+
+        <div class="block">
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · hoisting.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">// 🤔 Aap sochte ho ye error dega...</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">myVar</span><span class="punc">);</span>   <span class="cmt">// undefined (Error nahi!) 😕</span>
+<span class="kw">var</span> <span class="var">myVar</span> <span class="op">=</span> <span class="num">5</span><span class="punc">;</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">myVar</span><span class="punc">);</span>   <span class="cmt">// 5</span>
+
+<span class="cmt">// Internally JS aise karta hai:</span>
+<span class="kw">var</span> <span class="var">myVar</span><span class="punc">;</span>           <span class="cmt">// ← Upar aa gaya (hoisted)</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">myVar</span><span class="punc">);</span>   <span class="cmt">// undefined</span>
+<span class="var">myVar</span> <span class="op">=</span> <span class="num">5</span><span class="punc">;</span>
+
+<span class="cmt">// ─────────────────────────────────────────</span>
+<span class="cmt">// ✅ let/const — TDZ protect karta hai</span>
+<span class="cmt">// ─────────────────────────────────────────</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">myLet</span><span class="punc">);</span>   <span class="cmt">// ReferenceError: TDZ! ✅</span>
+<span class="kw">let</span> <span class="var">myLet</span> <span class="op">=</span> <span class="num">5</span><span class="punc">;</span></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output</div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="warn-c">undefined</span>
+                        <span class="cmt" style="font-family:'JetBrains Mono',monospace;font-size:12px;">← Error nahi,
+                            par misleading! 😕</span></div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="good">5</span></div>
+                    <div class="output-line" style="margin-top:8px;"><span class="out-prompt">&gt;</span> <span
+                            class="bad">ReferenceError: Cannot access 'myLet' before initialization</span></div>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>Hoisting kya hai?</strong> JS code run karne se pehle <strong>compilation phase</strong> mein
+                saare <code>var</code> declarations ko upar le jaata hai (hoist karta hai) — sirf declaration,
+                assignment nahi. Isliye <code>undefined</code> aata hai error nahi. <code>let</code> aur
+                <code>const</code> bhi technically hoist hote hain — lekin TDZ unhe access nahi karne deta, jo actually
+                helpful bug protection hai.
+            </div>
+        </div>
+
+        <!-- ═══ TDZ SECTION ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Concept 3 · TDZ</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block deep-dive-block">
+            <div class="block-label" style="color:var(--yellow)">⏳ Temporal Dead Zone — TDZ</div>
+            <div class="block-heading">The Waiting Period</div>
+            <p>Jab aap <code>let</code> ya <code>const</code> use karte ho, JS unhe memory mein note toh karta hai
+                (hoisting), lekin unhe "uninitialized" rakhta hai jab tak wo line actually execute na ho. Is zone ko
+                <strong>Temporal Dead Zone</strong> kehte hain.</p>
+
+            <div class="tdz-visual">
+                <div class="tdz-row tdz-danger">
+                    <span class="tdz-line-num">L1</span>
+                    <span style="color:var(--text-muted);">// start of block</span>
+                    <span class="tdz-tag tag-tdz">TDZ START</span>
+                </div>
+                <div class="tdz-row tdz-danger">
+                    <span class="tdz-line-num">L2</span>
+                    <span><span class="log" style="font-family:'JetBrains Mono',monospace;">console</span><span
+                            style="font-family:'JetBrains Mono',monospace;">.log(</span><span class="var"
+                            style="font-family:'JetBrains Mono',monospace;">name</span><span
+                            style="font-family:'JetBrains Mono',monospace;">);</span></span>
+                    <span class="tdz-tag tag-danger">🚨 ERROR</span>
+                </div>
+                <div class="tdz-row tdz-neutral">
+                    <span class="tdz-line-num">L3</span>
+                    <span><span class="kw" style="font-family:'JetBrains Mono',monospace;">let</span> <span class="var"
+                            style="font-family:'JetBrains Mono',monospace;">name</span> <span
+                            style="font-family:'JetBrains Mono',monospace;">=</span> <span class="str"
+                            style="font-family:'JetBrains Mono',monospace;">"Rahul"</span><span
+                            style="font-family:'JetBrains Mono',monospace;">;</span></span>
+                    <span class="tdz-tag tag-safe">TDZ END</span>
+                </div>
+                <div class="tdz-row tdz-safe">
+                    <span class="tdz-line-num">L4</span>
+                    <span><span class="log" style="font-family:'JetBrains Mono',monospace;">console</span><span
+                            style="font-family:'JetBrains Mono',monospace;">.log(</span><span class="var"
+                            style="font-family:'JetBrains Mono',monospace;">name</span><span
+                            style="font-family:'JetBrains Mono',monospace;">);</span></span>
+                    <span class="tdz-tag tag-ok">✅ SAFE</span>
+                </div>
+            </div>
+
+            <div class="callout">
+                <span class="callout-icon">🎯</span>
+                <span><strong style="color:var(--yellow)">TDZ ka fayda:</strong> Ye aapko accidentally declaration se
+                    pehle variable use karne se bachata hai — jo var ke saath ek silent bug create karta tha
+                    (<code>undefined</code> return karke).</span>
+            </div>
+        </div>
+
+        <!-- ═══ MISTAKE #3: CONST with objects ═══ -->
+        <div class="block warning-alert">
+            <div class="block-label" style="color:var(--yellow)">⚠️ Common Mistake #3</div>
+            <div class="block-heading">`const` ka matlab sirf binding fix hai, object nahi</div>
+            <p>Bahut log sochte hain <code>const</code> object ya array ko "freeze" kar deta hai. Ye galat hai!</p>
+        </div>
+
+        <div class="block">
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · const-trap.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="cmt">// ⚠️ const ke saath ye possible hai:</span>
+<span class="kw">const</span> <span class="var">user</span> <span class="op">=</span> <span class="punc">{</span> <span class="prop">name</span><span class="punc">:</span> <span class="str">"Rahul"</span> <span class="punc">};</span>
+<span class="var">user</span><span class="punc">.</span><span class="prop">name</span> <span class="op">=</span> <span class="str">"Priya"</span><span class="punc">;</span>          <span class="cmt">// ✅ Works! Object mutate ho sakta</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">user</span><span class="punc">);</span>            <span class="cmt">// {name: "Priya"}</span>
+
+<span class="cmt">// 🚨 const ke saath ye NAHI hoga:</span>
+<span class="var">user</span> <span class="op">=</span> <span class="punc">{</span> <span class="prop">name</span><span class="punc">:</span> <span class="str">"Someone"</span> <span class="punc">};</span>    <span class="cmt">// TypeError! Reassign nahi</span>
+
+<span class="cmt">// ────────────────────────────────────────────</span>
+<span class="cmt">// ✅ True freeze: Object.freeze()</span>
+<span class="cmt">// ────────────────────────────────────────────</span>
+<span class="kw">const</span> <span class="var">config</span> <span class="op">=</span> <span class="kw">Object</span><span class="punc">.</span><span class="fn">freeze</span><span class="punc">({</span>
+  <span class="prop">apiKey</span><span class="punc">:</span> <span class="str">"abc123"</span><span class="punc">,</span>
+  <span class="prop">maxLimit</span><span class="punc">:</span> <span class="num">100</span>
+<span class="punc">});</span>
+
+<span class="var">config</span><span class="punc">.</span><span class="prop">apiKey</span> <span class="op">=</span> <span class="str">"hacked"</span><span class="punc">;</span>    <span class="cmt">// Silently ignored (strict mode mein error)</span>
+<span class="log">console</span><span class="punc">.</span><span class="fn">log</span><span class="punc">(</span><span class="var">config</span><span class="punc">.</span><span class="prop">apiKey</span><span class="punc">);</span>  <span class="cmt">// "abc123" ← Unchanged ✅</span></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output</div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="warn-c">{name:
+                            "Priya"}</span> <span class="cmt"
+                            style="font-family:'JetBrains Mono',monospace;font-size:12px;">← mutate hua!</span></div>
+                    <div class="output-line"><span class="out-prompt">&gt;</span> <span class="bad">TypeError:
+                            Assignment to constant variable</span></div>
+                    <div class="output-line" style="margin-top:8px;"><span class="out-prompt">&gt;</span> <span
+                            class="good">"abc123"</span> <span class="cmt"
+                            style="font-family:'JetBrains Mono',monospace;font-size:12px;">← Object.freeze ne protect
+                            kiya ✅</span></div>
+                </div>
+            </div>
+            <div class="explanation">
+                <strong>Samjho:</strong> <code>const</code> sirf ye fix karta hai ki <strong>variable kis address ko
+                    point kar raha hai</strong>. Heap mein jo data hai, use toh aap badal sakte ho! Agar truly immutable
+                object chahiye toh <code>Object.freeze()</code> use karo.
+            </div>
+        </div>
+
+        <!-- ═══ QUIZ ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Quick Quiz · Test Yourself</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block quiz-block">
+            <div class="block-label" style="color:var(--accent)">🧠 Quiz 1</div>
+            <div class="quiz-q">Ye code kya output dega?<br><code
+                    style="background:rgba(0,0,0,0.3); font-size:13px;">let a = {x: 1}; let b = a; b.x = 99; console.log(a.x);</code>
+            </div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)"><span>A)</span> <span>1</span></div>
+            <div class="quiz-option" onclick="checkQuiz(this, true)"><span>B)</span> <span>99</span></div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)"><span>C)</span> <span>ReferenceError</span></div>
+            <div class="quiz-option" onclick="checkQuiz(this, false)"><span>D)</span> <span>undefined</span></div>
+            <div class="quiz-feedback" id="q1-feedback"></div>
+        </div>
+
+        <div class="block quiz-block">
+            <div class="block-label" style="color:var(--accent)">🧠 Quiz 2</div>
+            <div class="quiz-q"><code
+                    style="background:rgba(0,0,0,0.3); font-size:13px;">var x = 1; { var x = 2; } console.log(x);</code>
+                — kya aayega?</div>
+            <div class="quiz-option" onclick="checkQuiz2(this, false)"><span>A)</span> <span>1</span></div>
+            <div class="quiz-option" onclick="checkQuiz2(this, true)"><span>B)</span> <span>2</span></div>
+            <div class="quiz-option" onclick="checkQuiz2(this, false)"><span>C)</span> <span>ReferenceError</span></div>
+            <div class="quiz-option" onclick="checkQuiz2(this, false)"><span>D)</span> <span>undefined</span></div>
+            <div class="quiz-feedback" id="q2-feedback"></div>
+        </div>
+
+        <!-- ═══ MEMORY TIP ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Pro Tips</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block pro-tip">
+            <div class="block-label" style="color:var(--green)">💡 Memory Management Tip</div>
+            <div class="block-heading">Garbage Collector ko kaam dena seekho</div>
+            <p>Jab bade Objects ya Arrays ka kaam khatam ho jaye, unhe <code>null</code> assign karo. JS ka
+                <strong>Garbage Collector</strong> automatically un memory locations ko free kar deta hai jinka koi
+                reference nahi hai.</p>
+            <div class="code-block" style="margin-top:16px;">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <span class="code-lang">javascript · memory-cleanup.js</span>
+                </div>
+                <div class="code-body">
+                    <pre><span class="kw">let</span> <span class="var">bigData</span> <span class="op">=</span> <span class="fn">fetchMillionRecords</span><span class="punc">();</span>
+<span class="cmt">// ... processing ...</span>
+<span class="var">bigData</span> <span class="op">=</span> <span class="kw">null</span><span class="punc">;</span>   <span class="cmt">// ✅ GC ab free karega Heap memory</span></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ SUMMARY ═══ -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <div class="divider-text">Summary</div>
+            <div class="divider-line"></div>
+        </div>
+
+        <div class="block summary-block">
+            <div class="block-label" style="color:var(--accent)">🎓 Mastery Checklist — Ye sab samajh gaya?</div>
+            <div class="block-heading">Aaj Humne Kya Seekha</div>
+
+            <div class="mastery-point">
+                <div class="point-num">01</div>
+                <div>Hamesha <strong style="color:var(--accent)">const</strong> se shuru karo. Value badalni ho toh
+                    <strong style="color:var(--blue)">let</strong>. <code>var</code>? Production code mein use mat karo
+                    kabhi.</div>
+            </div>
+            <div class="mastery-point">
+                <div class="point-num">02</div>
+                <div><strong style="color:var(--green)">Primitives</strong> (Number, String, Boolean) Stack mein jate
+                    hain — fast, copy-on-assign. <strong style="color:var(--accent2)">Objects/Arrays</strong> Heap mein
+                    — sirf address copy hota hai.</div>
+            </div>
+            <div class="mastery-point">
+                <div class="point-num">03</div>
+                <div>Array copy ke liye <code style="color:var(--accent3)">[...arr]</code>, Object copy ke liye <code
+                        style="color:var(--accent3)">{...obj}</code>. Nested objects ke liye <code
+                        style="color:var(--accent3)">JSON.parse(JSON.stringify())</code>.</div>
+            </div>
+            <div class="mastery-point">
+                <div class="point-num">04</div>
+                <div><strong style="color:var(--yellow)">TDZ</strong> tera dost hai — ye
+                    <code>let</code>/<code>const</code> ko declaration se pehle access karne se rokta hai, hidden
+                    <code>undefined</code> bugs se bachata hai.</div>
+            </div>
+            <div class="mastery-point">
+                <div class="point-num">05</div>
+                <div><code>var</code> curly braces <code>{ }</code> nahi maanta — sirf functions. Isliye <strong
+                        style="color:var(--red)">scope leak</strong> hota hai.</div>
+            </div>
+            <div class="mastery-point">
+                <div class="point-num">06</div>
+                <div><code>const</code> sirf <strong>binding fix</strong> karta hai — object ke properties toh badal
+                    sakte ho. True immutability ke liye <code>Object.freeze()</code>.</div>
+            </div>
+            <div class="mastery-point">
+                <div class="point-num">07</div>
+                <div>Bade objects ka kaam khatam hone pe <code>null</code> assign karo — <strong
+                        style="color:var(--green)">Garbage Collector</strong> memory free karega, app fast chalegi.
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end content -->
+
+    <script>
+        function checkQuiz( clicked, isCorrect ) {
+            const options = clicked.parentElement.querySelectorAll( '.quiz-option' );
+            const feedback = clicked.parentElement.querySelector( '.quiz-feedback' );
+            options.forEach( o => o.style.pointerEvents = 'none' );
+            if ( isCorrect ) {
+                clicked.classList.add( 'correct' );
+                feedback.textContent = '✅ Sahi jawab! b = a karte time dono ek hi Heap address 0xA01 point karte hain. b.x = 99 se wahi object badla jise a bhi point kar raha hai.';
+                feedback.className = 'quiz-feedback show pass';
+            } else {
+                clicked.classList.add( 'wrong' );
+                options.forEach( o => { if ( o !== clicked ) { try { if ( o.children[ 1 ].textContent === '99' ) o.classList.add( 'correct' ); } catch ( e ) { } } } );
+                feedback.textContent = '❌ Galat! Sahi jawab 99 hai. Reference types mein sirf address copy hota hai, isliye dono same object ko point karte hain.';
+                feedback.className = 'quiz-feedback show fail';
+            }
+        }
+
+        function checkQuiz2( clicked, isCorrect ) {
+            const options = clicked.parentElement.querySelectorAll( '.quiz-option' );
+            const feedback = clicked.parentElement.querySelector( '.quiz-feedback' );
+            options.forEach( o => o.style.pointerEvents = 'none' );
+            if ( isCorrect ) {
+                clicked.classList.add( 'correct' );
+                feedback.textContent = '✅ Bilkul sahi! var block-scoped nahi hota. { } ke andar var x = 2 ne outer x ko overwrite kar diya. Isliye 2 aaya.';
+                feedback.className = 'quiz-feedback show pass';
+            } else {
+                clicked.classList.add( 'wrong' );
+                options.forEach( o => { if ( o !== clicked ) { try { if ( o.children[ 1 ].textContent === '2' ) o.classList.add( 'correct' ); } catch ( e ) { } } } );
+                feedback.textContent = '❌ Galat! Sahi jawab 2 hai. var ko { } block ki parwah nahi — scope sirf function level pe hota hai.';
+                feedback.className = 'quiz-feedback show fail';
+            }
+        }
+    </script>
+</body>
+
+</html>
