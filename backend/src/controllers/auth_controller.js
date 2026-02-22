@@ -630,7 +630,7 @@ const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
     const options = await generateRegistrationOptions(
         {
             rpName: "CodeArena",
-            rpID: "localhost",
+            rpID: "code-arena-seven",
 
             userID: new TextEncoder().encode( user._id.toString() ),
             userName: user.email,
@@ -674,8 +674,8 @@ const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
         {
             response: credential,
             expectedChallenge: user.currentChallenge,
-            expectedOrigin: "http://localhost:5173",
-            expectedRPID: "localhost",
+            expectedOrigin: "https://code-arena-seven.vercel.app",
+            expectedRPID: "code-arena-seven",
             requireUserVerification: true
         }
     )
@@ -726,7 +726,7 @@ const startPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const options = await generateAuthenticationOptions(
         {
-            rpID: "localhost",
+            rpID: "code-arena-seven",
             allowCredentials,
             userVerification: "required"
         }
@@ -770,8 +770,8 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
     const verification = await verifyAuthenticationResponse( {
         response: credential,
         expectedChallenge: user.currentChallenge,
-        expectedOrigin: "http://localhost:5173",
-        expectedRPID: "localhost",
+        expectedOrigin: "http://code-arena-seven.vercel.app",
+        expectedRPID: "code-arena-seven",
         credential: {
             id: passkey.credentialID,
             publicKey: Buffer.from( passkey.publicKey, "base64url" ),
@@ -805,11 +805,12 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
     return res
         .cookie( "accessToken", accessToken, cookieOptions )
         .cookie( "refreshToken", refreshToken, cookieOptions )
-        .json( new ApiRespone(
-            200,
-            { user: safeUser },
-            "Passkey login success"
-        ) )
+        .json(
+            new ApiRespone(
+                200,
+                { user: safeUser },
+                "Passkey login success"
+            ) )
 } )
 
 
