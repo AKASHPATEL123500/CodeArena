@@ -23,7 +23,8 @@ app.use( cookieParser() )
 app.use( cors( {
     origin: [
         process.env.CORS_ORIGIN,
-        'http://localhost:5173'
+        'http://localhost:5173',
+        'https://code-arena-seven.vercel.app'
     ],
     credentials: true
 } ) );
