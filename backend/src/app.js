@@ -20,20 +20,11 @@ app.use( express.json() )
 app.use( cookieParser() )
 
 
-// Configure CORS origins from env (comma-separated) and allow local dev host
-const rawCors = process.env.CORS_ORIGIN || '';
-const allowedOrigins = rawCors.split( ',' ).map( s => s.trim() ).filter( Boolean );
-if ( !allowedOrigins.includes( 'http://localhost:5173' ) ) allowedOrigins.push( 'http://localhost:5173' );
-
-console.log( 'CORS allowed origins:', allowedOrigins );
-
 app.use( cors( {
-    origin: function ( origin, callback ) {
-        // allow requests with no origin (like curl, server-to-server)
-        if ( !origin ) return callback( null, true );
-        if ( allowedOrigins.indexOf( origin ) !== -1 ) return callback( null, true );
-        return callback( new Error( 'CORS policy: origin not allowed' ), false );
-    },
+    origin: [
+        process.env.CORS_ORIGIN,
+        'http://localhost:5173'
+    ],
     credentials: true
 } ) );
 
@@ -49,16 +40,6 @@ const openRouter = createOpenRouter( {
 
 app.post( "/api/v1/chat-stream", async ( req, res ) => {
     try {
-        // Diagnostic: ensure OPEN_ROUTER is configured in production
-        if ( !process.env.OPEN_ROUTER ) {
-            console.error( 'OPEN_ROUTER API key is NOT set in environment!' );
-            return res.status( 500 ).json( { message: 'AI not configured on server. Missing OPEN_ROUTER key.' } );
-        }
-
-        // Log origin and a short preview of message for debugging (no secrets)
-        console.log( 'Chat stream request from origin:', req.headers.origin );
-        if ( req.body && req.body.message ) console.log( 'Chat message preview:', String( req.body.message ).slice( 0, 120 ) );
-
         const { message, history = [], model } = req.body;
         if ( !message ) return res.status( 400 ).json( { error: "Message is required" } );
 
