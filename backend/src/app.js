@@ -20,11 +20,20 @@ app.use( express.json() )
 app.use( cookieParser() )
 
 
+// Configure CORS origins from env (comma-separated) and allow local dev host
+const rawCors = process.env.CORS_ORIGIN || '';
+const allowedOrigins = rawCors.split(',').map( s => s.trim() ).filter( Boolean );
+if ( !allowedOrigins.includes( 'http://localhost:5173' ) ) allowedOrigins.push( 'http://localhost:5173' );
+
+console.log( 'CORS allowed origins:', allowedOrigins );
+
 app.use( cors( {
-    origin: [
-        process.env.CORS_ORIGIN,
-        'http://localhost:5173'
-    ],
+    origin: function( origin, callback ) {
+        // allow requests with no origin (like curl, server-to-server)
+        if ( !origin ) return callback( null, true );
+        if ( allowedOrigins.indexOf( origin ) !== -1 ) return callback( null, true );
+        return callback( new Error( 'CORS policy: origin not allowed' ), false );
+    },
     credentials: true
 } ) );
 

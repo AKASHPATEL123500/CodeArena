@@ -211,8 +211,21 @@ export default function AIChat() {
         setLoading( true );
         setMobileSidebar( false );
 
-        try {
-            const response = await fetch( 'https://codearena-3nbx.onrender.com/api/v1/chat-stream', {
+            try {
+            const backendBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+            let endpoint;
+            if ( backendBase ) {
+                // If env already contains /api/v1, append only /chat-stream
+                if ( /\/api\/v1\/?$/i.test( backendBase ) ) {
+                    endpoint = `${ backendBase.replace(/\/$/, '') }/chat-stream`;
+                } else {
+                    endpoint = `${ backendBase }/api/v1/chat-stream`;
+                }
+            } else {
+                endpoint = '/api/v1/chat-stream';
+            }
+
+            const response = await fetch( endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -209,7 +209,11 @@ const userSchema = new mongoose.Schema( {
                 default: Date.now
             }
         }
-    ]
+    ],
+    isGoogleUser: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true,
     toJSON: {  // ← ADDED

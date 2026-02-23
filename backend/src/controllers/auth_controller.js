@@ -803,6 +803,7 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
         .select( "-password -refreshToken" )
 
     return res
+        .status( 200 )
         .cookie( "accessToken", accessToken, cookieOptions )
         .cookie( "refreshToken", refreshToken, cookieOptions )
         .json(
@@ -813,7 +814,7 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
             ) )
 } )
 
-
+// ===================== login with google ===================
 
 export {
     signup,
@@ -831,5 +832,5 @@ export {
     startPasskeyRegistration,
     verifyPasskeyRegistration,
     startPasskeyLogin,
-    verifyPasskeyLogin
+    verifyPasskeyLogin,
 }
