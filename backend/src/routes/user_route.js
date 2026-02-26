@@ -4,9 +4,11 @@ import { verifyToken } from "../middlewares/isAuth.js"
 import {
     addUserSkill,
     deteteUserAccount,
+    getAllSeesions,
     getUserSkill,
     profile,
     removeUserSkill,
+    revokeSession,
     updateAvatar,
     updatePassword,
     updateProfile,
@@ -23,5 +25,8 @@ userRouter.get( "/skills", verifyToken, getUserSkill )
 userRouter.patch( "/skills/:skillId", verifyToken, updateUserSkill )
 userRouter.delete( "/skills/:skillId", verifyToken, removeUserSkill )
 userRouter.delete( "/delete-account", verifyToken, deteteUserAccount )
+userRouter.get( "/get-all-session", verifyToken, getAllSeesions )
+userRouter.delete( "/session-delete/:sessionId", verifyToken, revokeSession )
+
 
 export default userRouter

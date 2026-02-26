@@ -150,10 +150,6 @@ const userSchema = new mongoose.Schema( {
     passwordChangedAt: {
         type: Date
     },
-    refreshToken: {
-        type: String,
-        select: false  // ← ADDED
-    },
     loginAttempts: {
         type: Number,
         default: 0

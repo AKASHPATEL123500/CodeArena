@@ -15,6 +15,9 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import redis from "../config/redis.js";
+import { SessionTrack } from "../models/session.model.js";
+import generateDeviceFingerprint from "../utils/device.Finger.Print.js";
+import congratulationsTemplate from "../utils/congratulations.Teamplate.js";
 
 
 // ================ Signup =========================
@@ -163,7 +166,18 @@ const signin = asyncHandler( async ( req, res ) => {
     const accessToken = existingUser.generateAccessToken()
     const refreshToken = existingUser.generateRefreshToken()
 
-    existingUser.refreshToken = refreshToken
+    const sessionTrack = await SessionTrack.create(
+        {
+            user: existingUser._id,
+            email: existingUser.email,
+            refreshToken: refreshToken,
+            deviceFingerprint: generateDeviceFingerprint( req ),
+            IP: req.ip,
+            userAgent: req.headers[ "user-agent" ],
+            lastUsed: Date.now()
+        }
+    )
+
     existingUser.lastLogin = Date.now()
     await existingUser.save( { validateBeforeSave: false } )
 
@@ -176,6 +190,14 @@ const signin = asyncHandler( async ( req, res ) => {
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
+
+    await sendMail( {
+        to: trimmedEmail,
+        subject: "Wellcome to CodeArena Congratulations",
+        text: "Wellcome to CodeArena! Your account has been successfully created. We're excited to have you on board. Explore our platform, connect with others, and start your coding journey with us. Happy coding!",
+        html: congratulationsTemplate( existingUser.username )
+
+    } )
 
     return res
         .status( 200 )
@@ -193,15 +215,20 @@ const signin = asyncHandler( async ( req, res ) => {
 
 // =================== Signout ======================
 const signout = asyncHandler( async ( req, res ) => {
+    // 1. Refresh Token nikalo (Cookie se lena best hai)
+    const refreshToken = req.cookies?.refreshToken;
 
-    await User.findByIdAndUpdate(
-        req.user._id,
-        { $unset: { refreshToken: 1 } }
-    )
+    // 2. Database (Session Model) se specific entry delete karo
+    // User model wala $unset ab zaroori nahi hai kyunki token wahan hai hi nahi
+    if ( refreshToken ) {
+        await SessionTrack.findOneAndDelete( { refreshToken: refreshToken } );
+    }
 
     const cookieOptions = {
         httpOnly: true,
-        secure: true
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        maxAge: 0
     }
 
     return res
@@ -210,7 +237,6 @@ const signout = asyncHandler( async ( req, res ) => {
         .clearCookie( "refreshToken", cookieOptions )
         .json( new ApiRespone( 200, {}, "SignOut Successfully" ) )
 } )
-
 
 // ==================== Refresh Token =============
 const refreshTokenRotation = asyncHandler( async ( req, res ) => {
@@ -231,22 +257,37 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
         throw new ApiError( 401, "Invalid or expired refresh token" )
     }
 
-    // ✅ +refreshToken explicitly select karo
+
+    const session = await SessionTrack.findOne( {
+        refreshToken: inCommingRefreshToken,
+        user: decodeToken._id,
+        inValid: false
+    } )
+
+    if ( !session ) {
+        await SessionTrack.deleteMany( { user: decodeToken._id } )
+        throw new ApiError( 403, "Detected refresh token reuse! All sessions revoked." );
+    }
+
     const user = await User.findById( decodeToken?._id ).select( '+refreshToken' )
 
     if ( !user ) {
-        throw new ApiError( 401, "User not found" )
+        throw new ApiError( 401, "Invalid Credentials" )
     }
 
-    if ( inCommingRefreshToken !== user.refreshToken ) {
-        throw new ApiError( 401, "Refresh token is invalid or expired" )
-    }
+    // if ( inCommingRefreshToken !== user.refreshToken ) {
+    //     // Hacker spotted! Saare sessions uda do
+    //     await SessionTrack.deleteMany({ user: decodedToken._id });
+    //     throw new ApiError( 401, "Refresh token is invalid or expired" )
+    // }
 
     const newAccessToken = user.generateAccessToken()
     const newRefreshToken = user.generateRefreshToken()
 
-    user.refreshToken = newRefreshToken
-    await user.save( { validateBeforeSave: false } )
+    // user.refreshToken = newRefreshToken
+    session.refreshToken = newRefreshToken
+    session.lastUsed = Date.now()
+    await session.save( { validateBeforeSave: false } )
 
     const cookieOptions = {
         httpOnly: true,

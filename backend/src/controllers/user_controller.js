@@ -6,6 +6,7 @@ import { ApiRespone } from "../utils/apiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { DeleteHistory } from "../models/delete.history.js"
 import geoip from "geoip-lite"
+import { SessionTrack } from "../models/session.model.js"
 
 // ✅ Removed unused import { time } from "speakeasy"
 
@@ -22,6 +23,7 @@ const profile = asyncHandler( async ( req, res ) => {
         new ApiRespone( 200, { data: userWithoutSensitiveData }, "Profile fetched successfully" )
     )
 } )
+
 
 
 const updatePassword = asyncHandler( async ( req, res ) => {
@@ -326,6 +328,53 @@ const deteteUserAccount = asyncHandler( async ( req, res ) => {
 } )
 
 
+const getAllSeesions = asyncHandler( async ( req, res ) => {
+
+    const user = req.user
+
+    const sessions = await SessionTrack.find( {
+        user: user._id
+    } ).sort( { createdAt: -1 } ).select( "-refreshToken" )
+
+    if ( !sessions ) throw new ApiError( 404, "No active sessions found" )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                { sessions },
+                "Active sessions fetched successfully"
+            )
+        )
+} )
+
+
+const revokeSession = asyncHandler( async ( req, res ) => {
+    const user = req.user
+    const { sessionId } = req.params
+
+    if ( !sessionId ) throw new ApiError( 400, "Session ID is required" )
+
+    const session = await SessionTrack.findOneAndDelete( {
+        _id: sessionId.toString(),
+        user: user._id
+    } )
+
+    if ( !session ) throw new ApiError( 404, "Session not found or already revoked" )
+
+    return res
+        .status( 200 )
+        .json(
+            new ApiRespone(
+                200,
+                {},
+                "Session revoked successfully"
+            )
+        )
+} )
+
+
 
 export {
     profile,
@@ -337,4 +386,6 @@ export {
     updateUserSkill,
     removeUserSkill,
     deteteUserAccount,
+    getAllSeesions,
+    revokeSession
 }
