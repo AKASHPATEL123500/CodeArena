@@ -1,0 +1,24 @@
+services:
+  redis:
+    image: redis
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    networks:
+      - codearena-network
+
+  backend:
+    build: .
+    container_name: codearena-backend
+    env_file:
+      - .env
+    ports:
+      - "15000:15000"
+    depends_on:
+      - redis
+    networks:
+      - codearena-network
+
+networks:
+  codearena-network:
+    driver: bridge

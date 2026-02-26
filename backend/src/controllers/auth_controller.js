@@ -14,74 +14,64 @@ import { generateRegistrationOptions } from "@simplewebauthn/server"
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
+import redis from "../config/redis.js";
 
 
 // ================ Signup =========================
 const signup = asyncHandler( async ( req, res ) => {
 
     const { name, username, email, password, role } = req.body
-
-    const trimName = name?.trim()
-    const trimUserName = username?.trim()
-    const trimEmail = email?.trim()
-
-    if ( trimName.length < 2 || trimName > 50 ) {
-        throw new ApiError( 400, "Name must be between 2-50 characters" )
-    }
-
-    if ( trimUserName.length < 5 || trimUserName > 20 ) {
-        throw new ApiError( 400, "userame must be between 5-20 characters" )
-    }
-
-    if ( password.length < 8 ) {
-        throw new ApiError( 400, "password must be at least 8 char" )
-    }
-
-
-    // Password strength validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/
-
-    if ( !passwordRegex.test( password ) ) {
-        throw new ApiError( 400, "Password must contain uppercase, lowercase, number and special character" )
-    }
-
-
     const avatarFilePath = req.files?.avatar?.[ 0 ]?.path
 
     if ( !avatarFilePath ) {
         throw new ApiError( 400, "Avatar is missing" )
     }
 
+    const trimName = name?.trim()
+    const trimUserName = username?.trim()
+    const trimEmail = email?.trim()
 
     if ( !trimName || !trimUserName || !trimEmail || !password ) {
-        throw new ApiError( 400, "All fileds are required" )
+        throw new ApiError( 400, "All fields are required" )
     }
 
-    const avatar = await uploadOnCloudinary( avatarFilePath )
-    if ( !avatar ) {
-        throw new ApiError( 400, "Failed to upload image. Please try again" )
+    // ✅ Fixed - .length add kiya
+    if ( trimName.length < 2 || trimName.length > 50 ) {
+        throw new ApiError( 400, "Name must be between 2-50 characters" )
     }
 
+    if ( trimUserName.length < 5 || trimUserName.length > 20 ) {
+        throw new ApiError( 400, "Username must be between 5-20 characters" )
+    }
 
-    const existingUser = await User.findOne(
-        {
-            $or: [
-                { username: username },
-                { email: email }
-            ]
-        }
-    )
+    if ( password.length < 8 ) {
+        throw new ApiError( 400, "Password must be at least 8 characters" )
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/
+
+    if ( !passwordRegex.test( password ) ) {
+        throw new ApiError( 400, "Password must contain uppercase, lowercase, number and special character" )
+    }
+
+    const existingUser = await User.findOne( {
+        $or: [
+            { username: username },
+            { email: email }
+        ]
+    } )
 
     if ( existingUser ) {
+        if ( existingUser.isDeleted ) {
+            throw new ApiError( 409, "Account with this email/username was deleted. Contact support" )
+        }
         if ( existingUser.email === email ) {
-            throw new ApiError( 409, "email already exist" )
+            throw new ApiError( 409, "Email already exists" )
         }
         if ( existingUser.username === username ) {
-            throw new ApiError( 409, "username already exist" )
+            throw new ApiError( 409, "Username already exists" )
         }
     }
-
-    const avatarUrl = avatar.url
 
     const allowedRole = [ "student", "startup", "mentor" ]
 
@@ -89,30 +79,33 @@ const signup = asyncHandler( async ( req, res ) => {
         throw new ApiError( 400, "Invalid role. Allowed: student, startup, mentor" )
     }
 
-    const user = await User.create(
-        {
-            name: trimName,
-            username: trimUserName,
-            email: trimEmail,
-            password: password,
-            role: role || "student",
-            avatar: avatarUrl
-        }
-    )
+    const avatar = await uploadOnCloudinary( avatarFilePath )
+    if ( !avatar ) {
+        throw new ApiError( 400, "Failed to upload image. Please try again" )
+    }
 
-    const freshUserData = await User.findById( user._id ).select( "-password -refreshtoken" )
+    const user = await User.create( {
+        name: trimName,
+        username: trimUserName,
+        email: trimEmail,
+        password: password,
+        role: role || "student",
+        avatar: avatar.url
+    } )
+
+    const freshUserData = await User.findById( user._id ).select( "-password -refreshToken" )
+
     return res.status( 201 ).json(
         new ApiRespone( 201, freshUserData, "Signup successfully" )
     )
 } )
 
+
 // ================= Login ==========================
 const signin = asyncHandler( async ( req, res ) => {
 
-    // 1. Get data from request body
     const { email, password } = req.body
 
-    // 2. Validate inputs
     const trimmedEmail = email?.trim()
     const trimmedPassword = password?.trim()
 
@@ -120,35 +113,31 @@ const signin = asyncHandler( async ( req, res ) => {
         throw new ApiError( 400, "Email and password are required" )
     }
 
-    // 3. Find user in database (with password field)
     const existingUser = await User.findOne( {
-        email: trimmedEmail.toLowerCase()
+        email: trimmedEmail.toLowerCase(), isDeleted: false
     } ).select( '+password' )
 
-    // 4. User not found - timing attack prevention
     const dummyHash = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIWYzFKqle"
     if ( !existingUser ) {
         await bcrypt.compare( trimmedPassword, dummyHash )
         throw new ApiError( 401, "Invalid credentials" )
     }
 
-    // 5. Check account status
     if ( !existingUser.isActive ) {
         throw new ApiError( 403, "Account has been deactivated. Contact support" )
     }
 
-    // 6. Check account lock
+    if ( existingUser.isDeleted ) {
+        throw new ApiError( 403, "Account has been deleted. Contact support" )
+    }
+
     if ( existingUser.lockUntil && existingUser.lockUntil > Date.now() ) {
         const remainingMinutes = Math.ceil(
             ( existingUser.lockUntil - Date.now() ) / ( 60 * 1000 )
         )
-        throw new ApiError(
-            403,
-            `Account locked. Try again after ${ remainingMinutes } minutes`
-        )
+        throw new ApiError( 403, `Account locked. Try again after ${ remainingMinutes } minutes` )
     }
 
-    // 7. Verify password
     const isPasswordCorrect = await existingUser.isPasswordMatched( trimmedPassword )
 
     if ( !isPasswordCorrect ) {
@@ -156,76 +145,58 @@ const signin = asyncHandler( async ( req, res ) => {
         throw new ApiError( 401, "Invalid credentials" )
     }
 
-    // 8. Password correct - reset login attempts
     await existingUser.resetLoginAttempts()
 
     if ( !existingUser.isVerified ) {
-        throw new ApiError( 400, "Verify your emial" )
+        throw new ApiError( 400, "Please verify your email first" )
     }
 
     if ( existingUser.twoFactorEnabled ) {
-        return res
-            .status( 200 )
-            .json(
-                new ApiRespone(
-                    200,
-                    {
-                        twoFactorRequired: true,
-                        userId: existingUser._id
-                    },
-                    "Enter 2FA Code"
-                )
-            )
+        return res.status( 200 ).json(
+            new ApiRespone( 200, {
+                twoFactorRequired: true,
+                userId: existingUser._id
+            }, "Enter 2FA Code" )
+        )
     }
-    // 9. Generate tokens
+
     const accessToken = existingUser.generateAccessToken()
     const refreshToken = existingUser.generateRefreshToken()
 
-    // 10. Save refresh token and update lastLogin (single DB call)
     existingUser.refreshToken = refreshToken
     existingUser.lastLogin = Date.now()
     await existingUser.save( { validateBeforeSave: false } )
 
-
-    // 11. Get user data without sensitive fields
     const userWithoutPassword = await User.findById( existingUser._id )
-        .select( '-password -refreshToken' )
+        .select( '-password ' )
 
-    // 12. Cookie options
     const cookieOptions = {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
-    // 13. Send response
     return res
         .status( 200 )
         .cookie( "accessToken", accessToken, cookieOptions )
         .cookie( "refreshToken", refreshToken, cookieOptions )
         .json(
-            new ApiRespone(
-                200,
-                {
-                    user: userWithoutPassword,
-                    accessToken: accessToken
-                },
-                "Sign in successful"
-            )
+            new ApiRespone( 200, {
+                user: userWithoutPassword,
+                accessToken: accessToken,
+                refreshToken: refreshToken  // ✅ Added
+            }, "Sign in successful" )
         )
 } )
 
-// =================== signout ======================
+
+// =================== Signout ======================
 const signout = asyncHandler( async ( req, res ) => {
 
     await User.findByIdAndUpdate(
         req.user._id,
-        {
-            $unset: {
-                refreshToken: 1
-            }
-        }
+        { $unset: { refreshToken: 1 } }
     )
 
     const cookieOptions = {
@@ -237,27 +208,18 @@ const signout = asyncHandler( async ( req, res ) => {
         .status( 200 )
         .clearCookie( "accessToken", cookieOptions )
         .clearCookie( "refreshToken", cookieOptions )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "SignOut Successfully"
-            )
-        )
-
+        .json( new ApiRespone( 200, {}, "SignOut Successfully" ) )
 } )
 
-// ==================== New refreshToken =============
+
+// ==================== Refresh Token =============
 const refreshTokenRotation = asyncHandler( async ( req, res ) => {
 
-    // 1. Get token
     const inCommingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
     if ( !inCommingRefreshToken ) {
         throw new ApiError( 401, "Refresh token is required" )
     }
-
-    // 2. Verify token
 
     let decodeToken
     try {
@@ -269,177 +231,125 @@ const refreshTokenRotation = asyncHandler( async ( req, res ) => {
         throw new ApiError( 401, "Invalid or expired refresh token" )
     }
 
-    // 3. Find user
-    const user = await User.findById( decodeToken?._id )
+    // ✅ +refreshToken explicitly select karo
+    const user = await User.findById( decodeToken?._id ).select( '+refreshToken' )
 
     if ( !user ) {
-        console.log( "❌ User not found" )
         throw new ApiError( 401, "User not found" )
     }
-
 
     if ( inCommingRefreshToken !== user.refreshToken ) {
         throw new ApiError( 401, "Refresh token is invalid or expired" )
     }
 
-    // 5. Generate new tokens
     const newAccessToken = user.generateAccessToken()
     const newRefreshToken = user.generateRefreshToken()
 
-    // 6. Save
     user.refreshToken = newRefreshToken
     await user.save( { validateBeforeSave: false } )
 
-    // 7. Response
     const cookieOptions = {
         httpOnly: true,
-        secure: true,  // ← FIXED!
-        sameSite: 'none',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
-
 
     return res
         .status( 200 )
         .cookie( "accessToken", newAccessToken, cookieOptions )
         .cookie( "refreshToken", newRefreshToken, cookieOptions )
         .json(
-            new ApiRespone(
-                200,
-                { accessToken: newAccessToken },
-                "Token refreshed successfully"
-            )
+            new ApiRespone( 200, {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken  // ✅ Naya refreshToken bhi bhejo
+            }, "Token refreshed successfully" )
         )
 } )
 
 
-// =============== Emila verifictaion system =============
+// =============== Email Verification =============
 const sendOtpEmail = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
-    const trimEmail = email.trim()
+    if ( !email ) throw new ApiError( 400, "Email is required" )
 
-    if ( !trimEmail ) throw new ApiError( 400, "Email is required" )
+    const trimEmail = email.trim().toLowerCase()
 
-    const user = await User.findOne( { email: trimEmail.toLowerCase() } )
-
-    if ( !user ) throw new ApiError( 401, "Invaild Credential" )
+    const user = await User.findOne( { email: trimEmail } )
+    if ( !user ) throw new ApiError( 401, "Invalid Credential" )
 
     const otp = genrateOtp()
 
-    user.emaillOtp = otp
-    user.emailOtpExpire = Date.now() + 10 * 60 * 1000
-    await user.save( { validateBeforeSave: false } )
+    // ✅ Removed undefined functions candSendOTP and storeOTP
+    await redis.set( `email_otp:${ trimEmail }`, otp, 'EX', 600 )
 
+    await sendMail( {
+        to: trimEmail,
+        subject: "Email Verification OTP",
+        text: "",
+        html: otpTemplate( otp, user.name )
+    } )
 
-    await sendMail(
-        {
-            to: trimEmail,
-            subject: "Password Reset otp",
-            text: "",
-            html: otpTemplate( otp, user.name )
-        }
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "OTP sent successfully. Please check your email" )
     )
-
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "OTP send successfully on your email. please check"
-            )
-        )
 } )
 
 
-// ==================== Emila verifictaion system ==========
+// ==================== Verify Email OTP ==========
 const verifyEmailOtp = asyncHandler( async ( req, res ) => {
 
-    // extract data from req.body 
     const { email, otp } = req.body
 
-    // trim email for white space 
-    const trimEmail = email.trim()
+    if ( !email || !otp ) throw new ApiError( 400, "All fields are required" )
 
-    // check all fileds are filed or not
-    if ( !trimEmail || !otp ) throw new ApiError( 400, "All fields are required" )
+    const trimEmail = email.trim().toLowerCase()
 
-    // finde user in DB with email
-    const user = await User.findOne( { email: trimEmail.toLowerCase() } )
+    const user = await User.findOne( { email: trimEmail } )
+    if ( !user ) throw new ApiError( 400, "Invalid Credential" )
 
-    // check user and email is viled or not
-    if ( !user || user.emaillOtp !== otp ) throw new ApiError( 400, "Invaild Credential" )
+    const savedOtp = await redis.get( `email_otp:${ trimEmail }` )
+    if ( !savedOtp ) throw new ApiError( 400, "OTP expired" )
 
-    // check exmail OTP expiry date. otp vaild hai ki nhai 
-    if ( user.emailOtpExpire < Date.now() ) throw new ApiError( 400, "OTP is expire" )
+    if ( savedOtp !== String( otp ).trim() ) throw new ApiError( 400, "Invalid OTP" )
 
+    await redis.del( `email_otp:${ trimEmail }` )
+    await redis.del( `otp_limit:${ trimEmail }` )
 
-    user.emaillOtp = undefined          // clear otp from database for secuirty
-    user.emailOtpExpire = undefined     // clear email otp expiry date for secuirty
-    user.isVerified = true              // verified true
-
-    // user save 
+    user.isVerified = true
     await user.save( { validateBeforeSave: false } )
 
-    // retunr success message with data
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "Email Verify Successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "Email verified successfully!" )
+    )
 } )
 
 
-// ================ Forget passwrod system =================
+// ================ Forget Password =================
 const forgetPassword = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
 
-    if ( !email ) {
-        throw new ApiError(
-            400,
-            "Email is required"
-        )
-    }
+    if ( !email ) throw new ApiError( 400, "Email is required" )
 
     const user = await User.findOne( { email } )
-
-    if ( !user ) {
-        throw new ApiError(
-            404,
-            "User not found"
-        )
-    }
+    if ( !user ) throw new ApiError( 404, "User not found" )
 
     const otp = genrateOtp()
-    user.resetOtp = otp
-    user.resetOtpExpire = Date.now() + 10 * 60 * 1000
 
-    await user.save( { validateBeforeSave: false } )
+    await redis.set( `reset_otp:${ email }`, otp, 'EX', 600 )
 
-    await sendMail(
-        {
-            to: email,
-            subject: "Password reset otp",
-            text: '',
-            html: otpTemplate( otp, user.name )
-        }
+    await sendMail( {
+        to: email,
+        subject: "Password Reset OTP",
+        text: '',
+        html: otpTemplate( otp, user.name )
+    } )
+
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "OTP sent to your email. Please check" )
     )
-
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "OTP send to your email. please check"
-            )
-        )
 } )
 
 
@@ -447,24 +357,20 @@ const forgetPassword = asyncHandler( async ( req, res ) => {
 const verifyOtp = asyncHandler( async ( req, res ) => {
 
     const { email, otp } = req.body
-
     if ( !email || !otp ) throw new ApiError( 400, "All fields are required" )
 
     const user = await User.findOne( { email } )
+    if ( !user ) throw new ApiError( 400, "Invalid Credential" )
 
-    if ( !user || user.resetOtp !== otp ) throw new ApiError( 400, "Invaild OTP" )
+    const savedOtp = await redis.get( `reset_otp:${ email }` )
+    if ( !savedOtp ) throw new ApiError( 400, "OTP Expired" )
+    if ( savedOtp !== String( otp ).trim() ) throw new ApiError( 400, "Invalid OTP" )
 
-    if ( user.resetOtpExpire < Date.now() ) throw new ApiError( 400, "OTP is expired" )
+    await redis.set( `otp_verified:${ email }`, "True", 'EX', 600 )
 
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "Verify OTP successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "OTP verified successfully" )
+    )
 } )
 
 
@@ -474,71 +380,52 @@ const resetPassword = asyncHandler( async ( req, res ) => {
     const { email, otp, newPassword, confirmPassword } = req.body
 
     if ( !email || !otp || !newPassword || !confirmPassword ) {
-        throw new ApiError( 400, "All fileds are required" )
+        throw new ApiError( 400, "All fields are required" )
     }
 
     if ( newPassword !== confirmPassword ) {
-        throw new ApiError( 400, "Password do not match" )
+        throw new ApiError( 400, "Passwords do not match" )
     }
 
     const user = await User.findOne( { email } )
+    if ( !user ) throw new ApiError( 401, "Invalid Credentials" )
 
-    if ( !user ) throw new ApiError( 404, "User not found" )
-
-    if ( !user || user.resetOtp !== otp ) {
-        throw new ApiError( 400, "Invaild OTP" )
-    }
-
-    if ( user.resetOtpExpire < Date.now() ) {
-        throw new ApiError( 400, "OTP expired" )
-    }
+    const isVerified = await redis.get( `otp_verified:${ email }` )
+    if ( !isVerified ) throw new ApiError( 400, "Please verify OTP first" )
 
     user.password = newPassword
-    user.resetOtp = undefined
-    user.resetOtpExpire = undefined
     user.isVerified = true
+    await user.save( { validateBeforeSave: false } )
 
-    user.save( { validateBeforeSave: false } )
+    await redis.del( `reset_otp:${ email }` )
+    await redis.del( `otp_verified:${ email }` )
+    await redis.del( `forget_limit:${ email }` )
 
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "Password reset successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "Password reset successfully" )
+    )
 } )
+
 
 // =================== 2FA System =========================
 const genrate2FASecret = asyncHandler( async ( req, res ) => {
 
     const user = await User.findById( req.user._id )
 
-    const secret = speakeasy.generateSecret(
-        {
-            name: `CodeArena(${ user.email })`
-        }
-    )
+    const secret = speakeasy.generateSecret( {
+        name: `CodeArena(${ user.email })`
+    } )
 
     user.twoFactorSecret = secret.base32
     await user.save( { validateBeforeSave: false } )
 
     const qr = await QRCode.toDataURL( secret.otpauth_url )
 
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {
-                    QrCode: qr
-                },
-                "Sacn QR with Authenticatior"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, { QrCode: qr }, "Scan QR with Authenticator" )
+    )
 } )
+
 
 // =================== Verify 2FA ==========================
 const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
@@ -546,43 +433,35 @@ const verifyAndEnable2FA = asyncHandler( async ( req, res ) => {
     const { token } = req.body
 
     const user = await User.findById( req.user._id )
-    const verify = speakeasy.totp.verify(
-        {
-            secret: user.twoFactorSecret,
-            encoding: "base32",
-            token: token.toString(),
-            window: 6
-        }
-    )
 
-    if ( !verify ) throw new ApiError( 400, "Invaild code" )
+    const verify = speakeasy.totp.verify( {
+        secret: user.twoFactorSecret,
+        encoding: "base32",
+        token: token.toString(),
+        window: 6
+    } )
+
+    if ( !verify ) throw new ApiError( 400, "Invalid code" )
 
     user.twoFactorEnabled = true
     await user.save()
 
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "2FA Enable successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "2FA Enabled successfully" )
+    )
 } )
+
 
 // ==================== Verify 2FA Login ===================
 const verify2FALogin = asyncHandler( async ( req, res ) => {
 
     const { userId, token } = req.body
 
-    if ( !userId || !token )
-        throw new ApiError( 400, "Missing data" )
+    if ( !userId || !token ) throw new ApiError( 400, "Missing data" )
 
     const user = await User.findById( userId )
 
-    if ( !user || !user.twoFactorEnabled )
-        throw new ApiError( 400, "Invalid request" )
+    if ( !user || !user.twoFactorEnabled ) throw new ApiError( 400, "Invalid request" )
 
     const ok = speakeasy.totp.verify( {
         secret: user.twoFactorSecret,
@@ -593,9 +472,8 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
 
     if ( !ok ) throw new ApiError( 400, "Wrong 2FA Code" )
 
-    // ✅ ISSUE TOKENS HERE
-    const accessToken = await user.generateAccessToken()
-    const refreshToken = await user.generateRefreshToken()
+    const accessToken = user.generateAccessToken()
+    const refreshToken = user.generateRefreshToken()
 
     user.refreshToken = refreshToken
     user.lastLogin = Date.now()
@@ -603,20 +481,22 @@ const verify2FALogin = asyncHandler( async ( req, res ) => {
 
     const cookieOptions = {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
     return res
         .cookie( "accessToken", accessToken, cookieOptions )
         .cookie( "refreshToken", refreshToken, cookieOptions )
-        .json(
-            new ApiRespone( 200, {}, "2FA Login success" )
-        )
+        .json( new ApiRespone( 200, {
+            accessToken,
+            refreshToken
+        }, "2FA Login success" ) )
 } )
 
-// ==================== passkey =============================
+
+// ==================== Passkey =============================
 const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
 
     const user = req.user
@@ -626,41 +506,27 @@ const startPasskeyRegistration = asyncHandler( async ( req, res ) => {
         type: "public-key"
     } ) )
 
-
-    const options = await generateRegistrationOptions(
-        {
-            rpName: "CodeArena",
-            rpID: "code-arena-seven",
-
-            userID: new TextEncoder().encode( user._id.toString() ),
-            userName: user.email,
-
-            attestationType: "none",
-
-            excludeCredentials,
-
-            authenticatorSelection: {
-                residentKey: "preferred",
-                userVerification: "preferred"
-            }
+    const options = await generateRegistrationOptions( {
+        rpName: "CodeArena",
+        rpID: "code-arena-seven",
+        userID: new TextEncoder().encode( user._id.toString() ),
+        userName: user.email,
+        attestationType: "none",
+        excludeCredentials,
+        authenticatorSelection: {
+            residentKey: "preferred",
+            userVerification: "preferred"
         }
-    )
+    } )
 
-    console.log( "OPTIONS:", JSON.stringify( options, null, 2 ) )
-    console.log( "CHALLENGE:", options?.challenge )
     user.currentChallenge = options.challenge
     await user.save( { validateBeforeSave: false } )
 
-    return res
-        .status( 200 ).
-        json(
-            new ApiRespone(
-                200,
-                { options },
-                "start registration passkey successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, { options }, "Passkey registration started" )
+    )
 } )
+
 
 // ==================== Verify Passkey =======================
 const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
@@ -668,19 +534,17 @@ const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
     const user = req.user
     const { credential } = req.body
 
-    if ( !credential ) throw new ApiError( 400, "Credential Id id required" )
+    if ( !credential ) throw new ApiError( 400, "Credential is required" )
 
-    const verification = await verifyRegistrationResponse(
-        {
-            response: credential,
-            expectedChallenge: user.currentChallenge,
-            expectedOrigin: "https://code-arena-seven.vercel.app",
-            expectedRPID: "code-arena-seven",
-            requireUserVerification: true
-        }
-    )
+    const verification = await verifyRegistrationResponse( {
+        response: credential,
+        expectedChallenge: user.currentChallenge,
+        expectedOrigin: "https://code-arena-seven.vercel.app",
+        expectedRPID: "code-arena-seven",
+        requireUserVerification: true
+    } )
 
-    if ( !verification.verified ) throw new ApiError( 400, "Passkey verification fail" )
+    if ( !verification.verified ) throw new ApiError( 400, "Passkey verification failed" )
 
     const { credential: cred } = verification.registrationInfo
 
@@ -695,18 +559,13 @@ const verifyPasskeyRegistration = asyncHandler( async ( req, res ) => {
     user.currentChallenge = undefined
     await user.save( { validateBeforeSave: false } )
 
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                {},
-                "Passkey verify successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, {}, "Passkey registered successfully" )
+    )
 } )
 
-// ===================== login passkey =========================
+
+// ===================== Login Passkey =========================
 const startPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const { email } = req.body
@@ -724,53 +583,40 @@ const startPasskeyLogin = asyncHandler( async ( req, res ) => {
         type: "public-key"
     } ) )
 
-    const options = await generateAuthenticationOptions(
-        {
-            rpID: "code-arena-seven",
-            allowCredentials,
-            userVerification: "required"
-        }
-    )
+    const options = await generateAuthenticationOptions( {
+        rpID: "code-arena-seven",
+        allowCredentials,
+        userVerification: "required"
+    } )
 
     user.currentChallenge = options.challenge
     await user.save( { validateBeforeSave: false } )
 
-    return res
-        .status( 200 )
-        .json(
-            new ApiRespone(
-                200,
-                { options },
-                "login passkey genrate successfully"
-            )
-        )
+    return res.status( 200 ).json(
+        new ApiRespone( 200, { options }, "Passkey login started" )
+    )
 } )
 
-// ===================== veify login passkey ===================
+
+// ===================== Verify Login Passkey ===================
 const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
 
     const { email, credential } = req.body
 
     const user = await User.findOne( { email: email.toLowerCase() } )
 
-
     if ( !user ) throw new ApiError( 404, "Invalid credential" )
 
-    if ( !user.currentChallenge ) {
-        throw new ApiError( 400, "No login challenge found" )
-    }
+    if ( !user.currentChallenge ) throw new ApiError( 400, "No login challenge found" )
 
-
-    const passkey = user.passkeys.find(
-        pk => pk.credentialID === credential.id
-    )
+    const passkey = user.passkeys.find( pk => pk.credentialID === credential.id )
 
     if ( !passkey ) throw new ApiError( 400, "Passkey not registered" )
 
     const verification = await verifyAuthenticationResponse( {
         response: credential,
         expectedChallenge: user.currentChallenge,
-        expectedOrigin: "http://code-arena-seven.vercel.app",
+        expectedOrigin: "https://code-arena-seven.vercel.app",
         expectedRPID: "code-arena-seven",
         credential: {
             id: passkey.credentialID,
@@ -780,41 +626,37 @@ const verifyPasskeyLogin = asyncHandler( async ( req, res ) => {
         }
     } )
 
-    if ( !verification.verified )
-        throw new ApiError( 400, "Passkey login failed" )
+    if ( !verification.verified ) throw new ApiError( 400, "Passkey login failed" )
 
     passkey.counter = verification.authenticationInfo.newCounter
     user.currentChallenge = undefined
 
-    const accessToken = await user.generateAccessToken()
-    const refreshToken = await user.generateRefreshToken()
+    const accessToken = user.generateAccessToken()
+    const refreshToken = user.generateRefreshToken()
 
     user.refreshToken = refreshToken
     await user.save( { validateBeforeSave: false } )
 
     const cookieOptions = {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 
-    const safeUser = await User.findById( user._id )
-        .select( "-password -refreshToken" )
+    const safeUser = await User.findById( user._id ).select( "-password -refreshToken" )
 
     return res
         .status( 200 )
         .cookie( "accessToken", accessToken, cookieOptions )
         .cookie( "refreshToken", refreshToken, cookieOptions )
-        .json(
-            new ApiRespone(
-                200,
-                { user: safeUser },
-                "Passkey login success"
-            ) )
+        .json( new ApiRespone( 200, {
+            user: safeUser,
+            accessToken,
+            refreshToken
+        }, "Passkey login success" ) )
 } )
 
-// ===================== login with google ===================
 
 export {
     signup,

@@ -3,7 +3,8 @@ import express from 'express';
 import {
     aiGenerateLesson,
     aiGenerateCourseOutline,
-    aiGenerateCompleteCourse
+    aiGenerateCompleteCourse,
+    chatStream
 } from '../controllers/ai_controller.js';
 
 const aiRouter = express.Router();
@@ -16,5 +17,8 @@ aiRouter.post( '/generate-outline', aiGenerateCourseOutline );
 
 // Generate complete course
 aiRouter.post( '/generate-course', aiGenerateCompleteCourse );
+
+// Chat stream (server-sent chunks)
+aiRouter.post( '/chat-stream', chatStream );
 
 export default aiRouter;

@@ -3,6 +3,7 @@ import Upload from "../middlewares/multer.js"
 import { verifyToken } from "../middlewares/isAuth.js"
 import {
     addUserSkill,
+    deteteUserAccount,
     getUserSkill,
     profile,
     removeUserSkill,
@@ -21,5 +22,6 @@ userRouter.post( "/skills", verifyToken, addUserSkill )
 userRouter.get( "/skills", verifyToken, getUserSkill )
 userRouter.patch( "/skills/:skillId", verifyToken, updateUserSkill )
 userRouter.delete( "/skills/:skillId", verifyToken, removeUserSkill )
+userRouter.delete( "/delete-account", verifyToken, deteteUserAccount )
 
 export default userRouter

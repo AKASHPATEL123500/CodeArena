@@ -152,6 +152,7 @@ const userSchema = new mongoose.Schema( {
     },
     refreshToken: {
         type: String,
+        select: false  // ← ADDED
     },
     loginAttempts: {
         type: Number,
@@ -213,20 +214,53 @@ const userSchema = new mongoose.Schema( {
     isGoogleUser: {
         type: Boolean,
         default: false
-    }
-}, {
-    timestamps: true,
-    toJSON: {  // ← ADDED
-        virtuals: true,
-        transform: function ( doc, ret ) {
-            delete ret.password;
-            delete ret.refreshToken;
-            delete ret.__v;
-            return ret;
-        }
     },
-    toObject: { virtuals: true }
-} );
+    isDeleted: {  // ← ADDED
+        type: Boolean,
+        default: false
+    },
+    deletedAt: {  // ← ADDED
+        type: Date,
+        default: null
+    },
+    deletedReason: {
+        type: String,
+        enum: [ "user_request", "inactivity", "violation", "other" ],  // ← ADDED
+        default: "user_request"
+    },
+    userIpAdresses: [  // ← ADDED
+        {
+            ip: {
+                type: String,
+                required: true
+            },
+            firstSeen: {
+                type: Date,
+                default: Date.now
+            },
+            lastSeen: {
+                type: Date,
+                default: Date.now
+            },
+            userAgent: {
+                type: String
+            }
+        },
+    ]
+},
+    {
+        timestamps: true,
+        toJSON: {  // ← ADDED
+            virtuals: true,
+            transform: function ( doc, ret ) {
+                delete ret.password;
+                delete ret.refreshToken;
+                delete ret.__v;
+                return ret;
+            }
+        },
+        toObject: { virtuals: true }
+    } );
 
 
 // ========== VIRTUALS ==========

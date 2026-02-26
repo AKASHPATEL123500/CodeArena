@@ -25,7 +25,7 @@ import { authLimiter } from "../middlewares/rete_limter.js"
 const authRouter = express.Router()
 
 
-authRouter.post( "/signup", Upload.fields(
+authRouter.post( "/signup", authLimiter, Upload.fields(
     [
         {
             name: "avatar",
@@ -33,16 +33,16 @@ authRouter.post( "/signup", Upload.fields(
         }
     ]
 ), signup )
-authRouter.post( "/login", authLimiter, signin )
+authRouter.post( "/login", signin )
 authRouter.post( "/logout", verifyToken, signout )
 authRouter.post( "/refresh-token", refreshTokenRotation )
 authRouter.post( "/forget-passowrd", authLimiter, forgetPassword )
 authRouter.post( "/verify-otp", verifyOtp )
 authRouter.post( "/reset-password", resetPassword )
-authRouter.post( "/2fa-secret-key", verifyToken, genrate2FASecret )
+authRouter.post( "/2fa-secret-key", authLimiter, verifyToken, genrate2FASecret )
 authRouter.post( "/verify-2fa", verifyToken, verifyAndEnable2FA )
 authRouter.post( "/verify-2fa-login", verify2FALogin )
-authRouter.post( "/send-otp-email", sendOtpEmail )
+authRouter.post( "/send-otp-email", authLimiter, sendOtpEmail )
 authRouter.post( "/verify-email", verifyEmailOtp )
 authRouter.post( "/passkey/register/start", verifyToken, startPasskeyRegistration )
 authRouter.post( "/passkey/register/verify", verifyToken, verifyPasskeyRegistration )
