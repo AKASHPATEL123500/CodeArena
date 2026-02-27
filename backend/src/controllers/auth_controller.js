@@ -109,8 +109,8 @@ const signin = asyncHandler( async ( req, res ) => {
 
     const { email, password } = req.body
 
-    const trimmedEmail = email?.trim()
-    const trimmedPassword = password?.trim()
+    const trimmedEmail = email.trim()
+    const trimmedPassword = password.trim()
 
     if ( !trimmedEmail || !trimmedPassword ) {
         throw new ApiError( 400, "Email and password are required" )
