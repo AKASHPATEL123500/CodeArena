@@ -1,4 +1,4 @@
-FROM node:20
+FROM node:20.20.2-trixie-slim
 
 WORKDIR /app
 
